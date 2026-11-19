@@ -1926,6 +1926,8 @@
       type (block) :: &
          this_block           ! block information for current block
 
+      real (kind=dbl_kind), dimension(nx_block,ny_block) :: worka
+
       character(len=*), parameter :: subname = '(accum_hist_bgc)'
 
       call icepack_query_parameters(rhos_out=rhos, rhoi_out=rhoi, &
@@ -1974,326 +1976,263 @@
 
      ! 2d bgc fields
      if (allocated(a2D)) then
+        worka(:,:) = c0
+        if (tr_iso .or. tr_aero .or. tr_brine .or. skl_bgc) then
 
-     if (tr_iso .or. tr_aero .or. tr_brine .or. skl_bgc) then
+           ! isotopes
+           if (f_fiso_atm(1:1) /= 'x') then
+              do n=1,n_iso
+                 call accum_hist_field(n_fiso_atm(n,:),iblk, fiso_atm(:,:,n,iblk), a2D)
+              enddo
+           endif
+           if (f_fiso_ocn(1:1) /= 'x') then
+              do n=1,n_iso
+                 call accum_hist_field(n_fiso_ocn(n,:),iblk, fiso_ocn(:,:,n,iblk), a2D)
+              enddo
+           endif
+           if (f_iso(1:1) /= 'x') then
+              do n=1,n_iso
+                 worka(ilo:ihi,jlo:jhi) = trcr(ilo:ihi,jlo:jhi,nt_isosno+n-1,iblk)/rhos
+                 call accum_hist_field(n_isosno(n,:), iblk, worka, a2D)
+                 worka(ilo:ihi,jlo:jhi) = trcr(ilo:ihi,jlo:jhi,nt_isoice+n-1,iblk)/rhos
+                 call accum_hist_field(n_isoice(n,:), iblk, worka, a2D)
+             enddo
+           endif
 
-      ! isotopes
-      if (f_fiso_atm(1:1) /= 'x') then
-         do n=1,n_iso
-            call accum_hist_field(n_fiso_atm(n,:),iblk, &
-                                    fiso_atm(:,:,n,iblk), a2D)
-         enddo
-      endif
-      if (f_fiso_ocn(1:1) /= 'x') then
-         do n=1,n_iso
-            call accum_hist_field(n_fiso_ocn(n,:),iblk, &
-                                    fiso_ocn(:,:,n,iblk), a2D)
-         enddo
-      endif
-      if (f_iso(1:1) /= 'x') then
-         do n=1,n_iso
-            call accum_hist_field(n_isosno(n,:), iblk, &
-                               trcr(:,:,nt_isosno+n-1,iblk)/rhos, a2D)
-            call accum_hist_field(n_isoice(n,:), iblk, &
-                               trcr(:,:,nt_isoice+n-1,iblk)/rhos, a2D)
-         enddo
-      endif
+           ! Aerosols
+           if (f_faero_atm(1:1) /= 'x') then
+              do n=1,n_aero
+                 call accum_hist_field(n_faero_atm(n,:),iblk, faero_atm(:,:,n,iblk), a2D)
+               enddo
+           endif
+           if (f_faero_ocn(1:1) /= 'x') then
+              do n=1,n_aero
+                 call accum_hist_field(n_faero_ocn(n,:),iblk, faero_ocn(:,:,n,iblk), a2D)
+              enddo
+           endif
+           if (f_aero(1:1) /= 'x') then
+              do n=1,n_aero
+                 worka(ilo:ihi,jlo:jhi) = trcr(ilo:ihi,jlo:jhi,nt_aero  +4*(n-1),iblk)/rhos
+                 call accum_hist_field(n_aerosn1(n,:), iblk, worka, a2D)
+                 worka(ilo:ihi,jlo:jhi) = trcr(ilo:ihi,jlo:jhi,nt_aero+1+4*(n-1),iblk)/rhos
+                 call accum_hist_field(n_aerosn2(n,:), iblk, worka, a2D)
+                 worka(ilo:ihi,jlo:jhi) = trcr(ilo:ihi,jlo:jhi,nt_aero+2+4*(n-1),iblk)/rhoi
+                 call accum_hist_field(n_aeroic1(n,:), iblk, worka, a2D)
+                 worka(ilo:ihi,jlo:jhi) = trcr(ilo:ihi,jlo:jhi,nt_aero+3+4*(n-1),iblk)/rhoi
+                 call accum_hist_field(n_aeroic2(n,:), iblk, worka, a2D)
+              enddo
+          endif
 
-      ! Aerosols
-      if (f_faero_atm(1:1) /= 'x') then
-         do n=1,n_aero
-            call accum_hist_field(n_faero_atm(n,:),iblk, &
-                                    faero_atm(:,:,n,iblk), a2D)
-         enddo
-      endif
-      if (f_faero_ocn(1:1) /= 'x') then
-         do n=1,n_aero
-            call accum_hist_field(n_faero_ocn(n,:),iblk, &
-                                    faero_ocn(:,:,n,iblk), a2D)
-         enddo
-      endif
-      if (f_aero(1:1) /= 'x') then
-         do n=1,n_aero
-            call accum_hist_field(n_aerosn1(n,:), iblk, &
-                               trcr(:,:,nt_aero  +4*(n-1),iblk)/rhos, a2D)
-            call accum_hist_field(n_aerosn2(n,:), iblk, &
-                               trcr(:,:,nt_aero+1+4*(n-1),iblk)/rhos, a2D)
-            call accum_hist_field(n_aeroic1(n,:), iblk, &
-                               trcr(:,:,nt_aero+2+4*(n-1),iblk)/rhoi, a2D)
-            call accum_hist_field(n_aeroic2(n,:), iblk, &
-                               trcr(:,:,nt_aero+3+4*(n-1),iblk)/rhoi, a2D)
-         enddo
-      endif
+         if (skl_bgc) then
 
-     if (skl_bgc) then
+         ! skeletal layer bgc
 
-      ! skeletal layer bgc
+           if (f_bgc_N(1:1)/= 'x') then
+              do n=1,n_algae
+                 call accum_hist_field(n_bgc_N(n,:)  , iblk, trcr(:,:,nt_bgc_N(n), iblk)  , sk_l, a2D)
+              enddo
+           endif
+           if (f_bgc_C(1:1)/= 'x') then
+              do n=1,n_algae
+                 worka(ilo:ihi,jlo:jhi) = sk_l*R_C2N(n)*trcr(ilo:ihi,jlo:jhi,nt_bgc_N(n), iblk)
+                 call accum_hist_field(n_bgc_C(n,:)  , iblk, worka                              , a2D)
+              enddo
+           endif
+           if (f_bgc_DOC(1:1)/= 'x') then
+              do n=1,n_doc
+                 call accum_hist_field(n_bgc_DOC(n,:), iblk, trcr(:,:,nt_bgc_DOC(n), iblk), sk_l, a2D)
+              enddo
+           endif
+           if (f_bgc_DIC(1:1)/= 'x') then
+              do n=1,n_dic
+                 call accum_hist_field(n_bgc_DIC(n,:), iblk, trcr(:,:,nt_bgc_DIC(n), iblk), sk_l, a2D)
+              enddo
+           endif
+           if (f_bgc_DON(1:1)/= 'x') then
+              do n=1,n_don
+                 call accum_hist_field(n_bgc_DON(n,:), iblk, trcr(:,:,nt_bgc_DON(n), iblk), sk_l, a2D)
+              enddo
+           endif
+           if (f_bgc_Fed (1:1)/= 'x') then
+              do n=1,n_fed
+                 call accum_hist_field(n_bgc_Fed (n,:),iblk, trcr(:,:,nt_bgc_Fed(n), iblk), sk_l, a2D)
+              enddo
+           endif
+           if (f_bgc_Fep (1:1)/= 'x') then
+              do n=1,n_fep
+                 call accum_hist_field(n_bgc_Fep (n,:),iblk, trcr(:,:,nt_bgc_Fep(n), iblk), sk_l, a2D)
+              enddo
+           endif
+           if (f_bgc_chl(1:1)/= 'x') then
+              do n=1,n_algae
+                 call accum_hist_field(n_bgc_chl(n,:),iblk, trcr(:,:,nt_bgc_chl (n), iblk), sk_l, a2D)
+              enddo
+           endif
+           if (f_bgc_Nit(1:1)/= 'x') &
+              call accum_hist_field(n_bgc_Nit  , iblk, trcr(:,:,nt_bgc_Nit, iblk)  , sk_l, a2D)
+           if (f_bgc_Am(1:1)/= 'x') &
+              call accum_hist_field(n_bgc_Am   , iblk, trcr(:,:,nt_bgc_Am, iblk)   , sk_l, a2D)
+           if (f_bgc_Sil(1:1)/= 'x') &
+             call accum_hist_field(n_bgc_Sil   , iblk, trcr(:,:,nt_bgc_Sil, iblk)  , sk_l, a2D)
+           if (f_bgc_hum(1:1)/= 'x') &
+              call accum_hist_field(n_bgc_hum  , iblk, trcr(:,:,nt_bgc_hum, iblk)  , sk_l, a2D)
+           if (f_bgc_PON(1:1)/= 'x') &
+              call accum_hist_field(n_bgc_PON  , iblk, trcr(:,:,nt_bgc_PON, iblk)  , sk_l, a2D)
+           if (f_bgc_DMSPp(1:1)/= 'x') &
+              call accum_hist_field(n_bgc_DMSPp, iblk, trcr(:,:,nt_bgc_DMSPp, iblk), sk_l, a2D)
+           if (f_bgc_DMSPd(1:1)/= 'x') &
+              call accum_hist_field(n_bgc_DMSPd, iblk, trcr(:,:,nt_bgc_DMSPd, iblk), sk_l, a2D)
+           if (f_bgc_DMS(1:1)/= 'x') &
+              call accum_hist_field(n_bgc_DMS  , iblk, trcr(:,:,nt_bgc_DMS, iblk)  , sk_l, a2D)
 
-      if (f_bgc_N(1:1)/= 'x') then
-         do n=1,n_algae
-            call accum_hist_field(n_bgc_N(n,:), iblk, &
-                    sk_l*trcr(:,:,nt_bgc_N(n),   iblk), a2D)
-         enddo
-      endif
-      if (f_bgc_C(1:1)/= 'x') then
-         do n=1,n_algae
-            call accum_hist_field(n_bgc_C(n,:),        iblk, &
-                    sk_l*R_C2N(n)*trcr(:,:,nt_bgc_N(n), iblk), a2D)
-         enddo
-      endif
-      if (f_bgc_DOC(1:1)/= 'x') then
-         do n=1,n_doc
-            call accum_hist_field(n_bgc_DOC(n,:), iblk, &
-                    sk_l*trcr(:,:,nt_bgc_DOC(n),   iblk), a2D)
-         enddo
-      endif
-      if (f_bgc_DIC(1:1)/= 'x') then
-         do n=1,n_dic
-            call accum_hist_field(n_bgc_DIC(n,:), iblk, &
-                    sk_l*trcr(:,:,nt_bgc_DIC(n),   iblk), a2D)
-         enddo
-      endif
-      if (f_bgc_DON(1:1)/= 'x') then
-         do n=1,n_don
-            call accum_hist_field(n_bgc_DON(n,:), iblk, &
-                    sk_l*trcr(:,:,nt_bgc_DON(n),   iblk), a2D)
-         enddo
-      endif
-      if (f_bgc_Fed (1:1)/= 'x') then
-         do n=1,n_fed
-            call accum_hist_field(n_bgc_Fed (n,:), iblk, &
-                    sk_l*trcr(:,:,nt_bgc_Fed (n),   iblk), a2D)
-         enddo
-      endif
-      if (f_bgc_Fep (1:1)/= 'x') then
-         do n=1,n_fep
-            call accum_hist_field(n_bgc_Fep (n,:), iblk, &
-                    sk_l*trcr(:,:,nt_bgc_Fep (n),   iblk), a2D)
-         enddo
-      endif
-      if (f_bgc_chl(1:1)/= 'x') then
-         do n=1,n_algae
-            call accum_hist_field(n_bgc_chl(n,:), iblk, &
-                    sk_l*trcr(:,:,nt_bgc_chl(n),   iblk), a2D)
-         enddo
-      endif
-      if (f_bgc_Nit(1:1)/= 'x') &
-         call accum_hist_field(n_bgc_Nit,  iblk, &
-                sk_l*trcr(:,:,nt_bgc_Nit,  iblk), a2D)
-      if (f_bgc_Am(1:1)/= 'x') &
-         call accum_hist_field(n_bgc_Am,   iblk, &
-                sk_l*trcr(:,:,nt_bgc_Am,   iblk), a2D)
-      if (f_bgc_Sil(1:1)/= 'x') &
-         call accum_hist_field(n_bgc_Sil,  iblk, &
-                sk_l*trcr(:,:,nt_bgc_Sil,  iblk), a2D)
-      if (f_bgc_hum(1:1)/= 'x') &
-         call accum_hist_field(n_bgc_hum,  iblk, &
-                sk_l*trcr(:,:,nt_bgc_hum,  iblk), a2D)
-      if (f_bgc_PON(1:1)/= 'x') &
-         call accum_hist_field(n_bgc_PON,  iblk, &
-                sk_l*trcr(:,:,nt_bgc_PON,  iblk), a2D)
-      if (f_bgc_DMSPp(1:1)/= 'x') &
-         call accum_hist_field(n_bgc_DMSPp,iblk, &
-                sk_l*trcr(:,:,nt_bgc_DMSPp,iblk), a2D)
-      if (f_bgc_DMSPd(1:1)/= 'x') &
-         call accum_hist_field(n_bgc_DMSPd,iblk, &
-                sk_l*trcr(:,:,nt_bgc_DMSPd,iblk), a2D)
-      if (f_bgc_DMS(1:1)/= 'x') &
-         call accum_hist_field(n_bgc_DMS,  iblk, &
-                sk_l*trcr(:,:,nt_bgc_DMS,  iblk), a2D)
-
-     endif  !skl_bgc
+         endif  !skl_bgc
 
       ! skeletal layer and vertical bgc
 
       if (f_bgc_DOC_ml(1:1)/= 'x') then
          do n=1,n_doc
-            call accum_hist_field(n_bgc_DOC_ml(n,:), iblk, &
-                   ocean_bio(:,:,nlt_bgc_DOC(n),      iblk), a2D)
+            call accum_hist_field(n_bgc_DOC_ml(n,:), iblk, ocean_bio(:,:,nlt_bgc_DOC(n), iblk), a2D)
          enddo
       endif
       if (f_bgc_DIC_ml(1:1)/= 'x') then
          do n=1,n_dic
-            call accum_hist_field(n_bgc_DIC_ml(n,:), iblk, &
-                   ocean_bio(:,:,nlt_bgc_DIC(n),      iblk), a2D)
+            call accum_hist_field(n_bgc_DIC_ml(n,:), iblk, ocean_bio(:,:,nlt_bgc_DIC(n), iblk), a2D)
          enddo
       endif
       if (f_bgc_DON_ml(1:1)/= 'x') then
          do n=1,n_don
-            call accum_hist_field(n_bgc_DON_ml(n,:), iblk, &
-                   ocean_bio(:,:,nlt_bgc_DON(n),      iblk), a2D)
+            call accum_hist_field(n_bgc_DON_ml(n,:), iblk, ocean_bio(:,:,nlt_bgc_DON(n), iblk), a2D)
          enddo
       endif
-      if (f_bgc_Fed_ml (1:1)/= 'x') then
+      if (f_bgc_Fed_ml(1:1)/= 'x') then
          do n=1,n_fed
-            call accum_hist_field(n_bgc_Fed_ml (n,:), iblk, &
-                   ocean_bio(:,:,nlt_bgc_Fed (n),      iblk), a2D)
+            call accum_hist_field(n_bgc_Fed_ml(n,:), iblk, ocean_bio(:,:,nlt_bgc_Fed(n), iblk), a2D)
          enddo
       endif
-      if (f_bgc_Fep_ml (1:1)/= 'x') then
+      if (f_bgc_Fep_ml(1:1)/= 'x') then
          do n=1,n_fep
-            call accum_hist_field(n_bgc_Fep_ml (n,:), iblk, &
-                   ocean_bio(:,:,nlt_bgc_Fep (n),      iblk), a2D)
+            call accum_hist_field(n_bgc_Fep_ml(n,:), iblk, ocean_bio(:,:,nlt_bgc_Fep(n), iblk), a2D)
          enddo
       endif
-      if (f_bgc_N_ml(1:1)/= 'x') then
+      if (f_bgc_N_ml  (1:1)/= 'x') then
          do n=1,n_algae
-            call accum_hist_field(n_bgc_N_ml(n,:), iblk, &
-                   ocean_bio(:,:,nlt_bgc_N(n),      iblk), a2D)
+            call accum_hist_field(n_bgc_N_ml  (n,:), iblk, ocean_bio(:,:,nlt_bgc_N  (n), iblk), a2D)
          enddo
       endif
-      if (f_bgc_Nit_ml(1:1)/= 'x') &
-         call accum_hist_field(n_bgc_Nit_ml,  iblk, &
-               ocean_bio(:,:,nlt_bgc_Nit,     iblk), a2D)
-      if (f_bgc_Am_ml(1:1)/= 'x') &
-         call accum_hist_field(n_bgc_Am_ml,   iblk, &
-               ocean_bio(:,:,nlt_bgc_Am,      iblk), a2D)
-      if (f_bgc_Sil_ml(1:1)/= 'x') &
-         call accum_hist_field(n_bgc_Sil_ml,  iblk, &
-               ocean_bio(:,:,nlt_bgc_Sil,     iblk), a2D)
-      if (f_bgc_hum_ml(1:1)/= 'x') &
-         call accum_hist_field(n_bgc_hum_ml,  iblk, &
-               ocean_bio(:,:,nlt_bgc_hum,     iblk), a2D)
-      if (f_bgc_DMSP_ml(1:1)/= 'x') &
-         call accum_hist_field(n_bgc_DMSP_ml, iblk, &
-               ocean_bio(:,:,nlt_bgc_DMSPd,   iblk), a2D)
-      if (f_bgc_DMS_ml(1:1)/= 'x') &
-         call accum_hist_field(n_bgc_DMS_ml,  iblk, &
-               ocean_bio(:,:,nlt_bgc_DMS,     iblk), a2D)
+      if (f_bgc_Nit_ml (1:1) /= 'x') &
+         call accum_hist_field(n_bgc_Nit_ml , iblk, ocean_bio(:,:,nlt_bgc_Nit  , iblk), a2D)
+      if (f_bgc_Am_ml  (1:1) /= 'x') &
+         call accum_hist_field(n_bgc_Am_ml  , iblk, ocean_bio(:,:,nlt_bgc_Am   , iblk), a2D)
+      if (f_bgc_Sil_ml (1:1) /= 'x') &
+         call accum_hist_field(n_bgc_Sil_ml , iblk, ocean_bio(:,:,nlt_bgc_Sil  , iblk), a2D)
+      if (f_bgc_hum_ml (1:1) /= 'x') &
+         call accum_hist_field(n_bgc_hum_ml , iblk, ocean_bio(:,:,nlt_bgc_hum  , iblk), a2D)
+      if (f_bgc_DMSP_ml(1:1) /= 'x') &
+         call accum_hist_field(n_bgc_DMSP_ml, iblk, ocean_bio(:,:,nlt_bgc_DMSPd, iblk), a2D)
+      if (f_bgc_DMS_ml (1:1) /= 'x') &
+         call accum_hist_field(n_bgc_DMS_ml , iblk, ocean_bio(:,:,nlt_bgc_DMS  , iblk), a2D)
 
-      if (f_fNit  (1:1) /= 'x') &
-         call accum_hist_field(n_fNit,     iblk, &
-                  flux_bio(:,:,nlt_bgc_Nit,iblk), a2D)
-      if (f_fNit_ai(1:1)/= 'x') &
-         call accum_hist_field(n_fNit_ai,  iblk, &
-               flux_bio_ai(:,:,nlt_bgc_Nit,iblk), a2D)
+      if (f_fNit   (1:1) /= 'x') &
+         call accum_hist_field(n_fNit   , iblk, flux_bio   (:,:,nlt_bgc_Nit,iblk), a2D)
+      if (f_fNit_ai(1:1) /= 'x') &
+         call accum_hist_field(n_fNit_ai, iblk, flux_bio_ai(:,:,nlt_bgc_Nit,iblk), a2D)
 
-      if (f_fAm  (1:1) /= 'x') &
-         call accum_hist_field(n_fAm,     iblk, &
-                  flux_bio(:,:,nlt_bgc_Am,iblk), a2D)
-      if (f_fAm_ai(1:1)/= 'x') &
-         call accum_hist_field(n_fAm_ai,  iblk, &
-               flux_bio_ai(:,:,nlt_bgc_Am,iblk), a2D)
-      if (f_fN(1:1)/= 'x') then
+      if (f_fAm    (1:1) /= 'x') &
+         call accum_hist_field(n_fAm    , iblk, flux_bio   (:,:,nlt_bgc_Am ,iblk), a2D)
+      if (f_fAm_ai (1:1) /= 'x') &
+         call accum_hist_field(n_fAm_ai , iblk, flux_bio_ai(:,:,nlt_bgc_Am ,iblk), a2D)
+      if (f_fN     (1:1) /= 'x') then
          do n=1,n_algae
-            call accum_hist_field(n_fN(n,:),    iblk, &
-                  flux_bio(:,:,nlt_bgc_N(n),iblk), a2D)
+            call accum_hist_field(n_fN     (n,:), iblk, flux_bio  (:,:,nlt_bgc_N   (n), iblk), a2D)
          enddo
       endif
-      if (f_fN_ai(1:1)/= 'x') then
+      if (f_fN_ai  (1:1)/= 'x') then
          do n=1,n_algae
-            call accum_hist_field(n_fN_ai(n,:),    iblk, &
-                  flux_bio_ai(:,:,nlt_bgc_N(n),iblk), a2D)
+            call accum_hist_field(n_fN_ai  (n,:), iblk, flux_bio_ai(:,:,nlt_bgc_N  (n), iblk), a2D)
          enddo
       endif
-      if (f_fDOC(1:1)/= 'x') then
+      if (f_fDOC   (1:1)/= 'x') then
          do n=1,n_doc
-            call accum_hist_field(n_fDOC(n,:),    iblk, &
-                  flux_bio(:,:,nlt_bgc_DOC(n),iblk), a2D)
+            call accum_hist_field(n_fDOC   (n,:), iblk, flux_bio   (:,:,nlt_bgc_DOC(n), iblk), a2D)
          enddo
       endif
       if (f_fDOC_ai(1:1)/= 'x') then
          do n=1,n_doc
-            call accum_hist_field(n_fDOC_ai(n,:),    iblk, &
-                  flux_bio_ai(:,:,nlt_bgc_DOC(n),iblk), a2D)
+            call accum_hist_field(n_fDOC_ai(n,:), iblk, flux_bio_ai(:,:,nlt_bgc_DOC(n), iblk), a2D)
          enddo
       endif
-      if (f_fDIC(1:1)/= 'x') then
+      if (f_fDIC   (1:1)/= 'x') then
          do n=1,n_dic
-            call accum_hist_field(n_fDIC(n,:),    iblk, &
-                  flux_bio(:,:,nlt_bgc_DIC(n),iblk), a2D)
+            call accum_hist_field(n_fDIC   (n,:), iblk, flux_bio(:,:,nlt_bgc_DIC   (n), iblk), a2D)
          enddo
       endif
       if (f_fDIC_ai(1:1)/= 'x') then
          do n=1,n_dic
-            call accum_hist_field(n_fDIC_ai(n,:),    iblk, &
-                  flux_bio_ai(:,:,nlt_bgc_DIC(n),iblk), a2D)
+            call accum_hist_field(n_fDIC_ai(n,:), iblk, flux_bio_ai(:,:,nlt_bgc_DIC(n), iblk), a2D)
          enddo
       endif
-      if (f_fDON(1:1)/= 'x') then
+      if (f_fDON   (1:1)/= 'x') then
          do n=1,n_don
-            call accum_hist_field(n_fDON(n,:),    iblk, &
-                  flux_bio(:,:,nlt_bgc_DON(n),iblk), a2D)
+            call accum_hist_field(n_fDON   (n,:), iblk, flux_bio   (:,:,nlt_bgc_DON(n), iblk), a2D)
          enddo
       endif
       if (f_fDON_ai(1:1)/= 'x') then
          do n=1,n_don
-            call accum_hist_field(n_fDON_ai(n,:),    iblk, &
-                  flux_bio_ai(:,:,nlt_bgc_DON(n),iblk), a2D)
+            call accum_hist_field(n_fDON_ai(n,:), iblk, flux_bio_ai(:,:,nlt_bgc_DON(n), iblk), a2D)
          enddo
       endif
-      if (f_fFed (1:1)/= 'x') then
+      if (f_fFed   (1:1)/= 'x') then
          do n=1,n_fed
-            call accum_hist_field(n_fFed (n,:),    iblk, &
-                  flux_bio(:,:,nlt_bgc_Fed (n),iblk), a2D)
+            call accum_hist_field(n_fFed   (n,:), iblk, flux_bio   (:,:,nlt_bgc_Fed(n), iblk), a2D)
          enddo
       endif
-      if (f_fFed_ai (1:1)/= 'x') then
+      if (f_fFed_ai(1:1)/= 'x') then
          do n=1,n_fed
-            call accum_hist_field(n_fFed_ai (n,:),    iblk, &
-                  flux_bio_ai(:,:,nlt_bgc_Fed (n),iblk), a2D)
+            call accum_hist_field(n_fFed_ai(n,:), iblk,flux_bio_ai(:,:,nlt_bgc_Fed (n), iblk), a2D)
          enddo
       endif
-      if (f_fFep (1:1)/= 'x') then
+      if (f_fFep   (1:1)/= 'x') then
          do n=1,n_fep
-            call accum_hist_field(n_fFep (n,:),    iblk, &
-                  flux_bio(:,:,nlt_bgc_Fep (n),iblk), a2D)
+            call accum_hist_field(n_fFep   (n,:), iblk, flux_bio  (:,:,nlt_bgc_Fep (n),iblk) , a2D)
          enddo
       endif
-      if (f_fFep_ai (1:1)/= 'x') then
+      if (f_fFep_ai(1:1)/= 'x') then
          do n=1,n_fep
-            call accum_hist_field(n_fFep_ai (n,:),    iblk, &
-                  flux_bio_ai(:,:,nlt_bgc_Fep (n),iblk), a2D)
+            call accum_hist_field(n_fFep_ai (n,:), iblk,flux_bio_ai(:,:,nlt_bgc_Fep (n),iblk), a2D)
          enddo
       endif
-      if (f_fSil  (1:1) /= 'x') &
-         call accum_hist_field(n_fSil,    iblk, &
-                 flux_bio(:,:,nlt_bgc_Sil,iblk), a2D)
-      if (f_fSil_ai(1:1)/= 'x') &
-         call accum_hist_field(n_fSil_ai, iblk, &
-              flux_bio_ai(:,:,nlt_bgc_Sil,iblk), a2D)
-      if (f_fhum  (1:1) /= 'x') &
-         call accum_hist_field(n_fhum,    iblk, &
-                 flux_bio(:,:,nlt_bgc_hum,iblk), a2D)
-      if (f_fhum_ai(1:1)/= 'x') &
-         call accum_hist_field(n_fhum_ai, iblk, &
-              flux_bio_ai(:,:,nlt_bgc_hum,iblk), a2D)
-      if (f_fPON  (1:1) /= 'x') &
-         call accum_hist_field(n_fPON,    iblk, &
-                 flux_bio(:,:,nlt_bgc_PON,iblk), a2D)
-      if (f_fPON_ai(1:1)/= 'x') &
-         call accum_hist_field(n_fPON_ai, iblk, &
-              flux_bio_ai(:,:,nlt_bgc_PON,iblk), a2D)
-      if (f_fDMS  (1:1) /= 'x') &
-         call accum_hist_field(n_fDMS,    iblk, &
-                 flux_bio(:,:,nlt_bgc_DMS,iblk), a2D)
-      if (f_fDMS_ai(1:1)/= 'x') &
-         call accum_hist_field(n_fDMS_ai, iblk, &
-              flux_bio_ai(:,:,nlt_bgc_DMS,iblk), a2D)
-      if (f_fDMSPd  (1:1) /= 'x') &
-         call accum_hist_field(n_fDMSPd,    iblk, &
-                 flux_bio(:,:,nlt_bgc_DMSPd,iblk), a2D)
-      if (f_fDMSPd_ai(1:1)/= 'x') &
-         call accum_hist_field(n_fDMSPd_ai, iblk, &
-              flux_bio_ai(:,:,nlt_bgc_DMSPd,iblk), a2D)
-      if (f_fDMSPp  (1:1) /= 'x') &
-         call accum_hist_field(n_fDMSPp,    iblk, &
-                 flux_bio(:,:,nlt_bgc_DMSPp,iblk), a2D)
-      if (f_fDMSPp_ai(1:1)/= 'x') &
-         call accum_hist_field(n_fDMSPp_ai, iblk, &
-              flux_bio_ai(:,:,nlt_bgc_DMSPp,iblk), a2D)
-      if (f_PPnet  (1:1) /= 'x') &
-         call accum_hist_field(n_PPnet,   iblk, &
-                               PP_net(:,:,iblk), a2D)
+      if (f_fSil     (1:1) /= 'x') &
+         call accum_hist_field(n_fSil     , iblk, flux_bio   (:,:,nlt_bgc_Sil,iblk)  , a2D)
+      if (f_fSil_ai  (1:1) /= 'x') &
+         call accum_hist_field(n_fSil_ai  , iblk, flux_bio_ai(:,:,nlt_bgc_Sil,iblk)  , a2D)
+      if (f_fhum     (1:1) /= 'x') &
+         call accum_hist_field(n_fhum     , iblk, flux_bio   (:,:,nlt_bgc_hum,iblk)  , a2D)
+      if (f_fhum_ai  (1:1) /= 'x') &
+         call accum_hist_field(n_fhum_ai  , iblk, flux_bio_ai(:,:,nlt_bgc_hum,iblk)  , a2D)
+      if (f_fPON     (1:1) /= 'x') &
+         call accum_hist_field(n_fPON     , iblk, flux_bio   (:,:,nlt_bgc_PON,iblk)  , a2D)
+      if (f_fPON_ai  (1:1) /= 'x') &
+         call accum_hist_field(n_fPON_ai  , iblk, flux_bio_ai(:,:,nlt_bgc_PON,iblk)  , a2D)
+      if (f_fDMS     (1:1) /= 'x') &
+         call accum_hist_field(n_fDMS     , iblk, flux_bio   (:,:,nlt_bgc_DMS,iblk)  , a2D)
+      if (f_fDMS_ai  (1:1) /= 'x') &
+         call accum_hist_field(n_fDMS_ai  , iblk, flux_bio_ai(:,:,nlt_bgc_DMS,iblk)  , a2D)
+      if (f_fDMSPd   (1:1) /= 'x') &
+         call accum_hist_field(n_fDMSPd   , iblk, flux_bio   (:,:,nlt_bgc_DMSPd,iblk), a2D)
+      if (f_fDMSPd_ai(1:1) /= 'x') &
+         call accum_hist_field(n_fDMSPd_ai, iblk, flux_bio_ai(:,:,nlt_bgc_DMSPd,iblk), a2D)
+      if (f_fDMSPp   (1:1) /= 'x') &
+         call accum_hist_field(n_fDMSPp   , iblk, flux_bio   (:,:,nlt_bgc_DMSPp,iblk), a2D)
+      if (f_fDMSPp_ai(1:1) /= 'x') &
+         call accum_hist_field(n_fDMSPp_ai, iblk, flux_bio_ai(:,:,nlt_bgc_DMSPp,iblk), a2D)
+      if (f_PPnet    (1:1) /= 'x') &
+         call accum_hist_field(n_PPnet    , iblk, PP_net     (:,:,iblk)              , a2D)
       if (f_grownet  (1:1) /= 'x') &
-         call accum_hist_field(n_grownet, iblk, &
-                             grow_net(:,:,iblk), a2D)
-      if (f_upNO (1:1) /= 'x') &
-         call accum_hist_field(n_upNO,   iblk, &
-                   upNO(:,:,iblk), a2D)
-      if (f_upNH (1:1) /= 'x') &
-         call accum_hist_field(n_upNH,   iblk, &
-                   upNH(:,:,iblk), a2D)
+         call accum_hist_field(n_grownet  , iblk, grow_net   (:,:,iblk)              , a2D)
+      if (f_upNO     (1:1) /= 'x') &
+         call accum_hist_field(n_upNO     , iblk, upNO       (:,:,iblk)              , a2D)
+      if (f_upNH     (1:1) /= 'x') &
+         call accum_hist_field(n_upNH     , iblk, upNH       (:,:,iblk)              , a2D)
 
       ! vertical biogeochemistry
 
@@ -2301,14 +2240,12 @@
 
       if (f_fzaero(1:1)/= 'x') then
          do n=1,n_zaero
-            call accum_hist_field(n_fzaero(n,:),    iblk, &
-                  flux_bio(:,:,nlt_zaero(n),iblk), a2D)
+            call accum_hist_field(n_fzaero   (n,:), iblk, flux_bio   (:,:,nlt_zaero(n), iblk), a2D)
          enddo
       endif
       if (f_fzaero_ai(1:1)/= 'x') then
          do n=1,n_zaero
-            call accum_hist_field(n_fzaero_ai(n,:),    iblk, &
-                  flux_bio_ai(:,:,nlt_zaero(n),iblk), a2D)
+            call accum_hist_field(n_fzaero_ai(n,:), iblk, flux_bio_ai(:,:,nlt_zaero(n), iblk), a2D)
          enddo
       endif
       if (f_algalpeak  (1:1) /= 'x') then
@@ -2329,10 +2266,8 @@
                 worknj(i,j) = maxv
                enddo  ! i
              enddo    ! j
-             call accum_hist_field(n_algalpeak(n,:),    iblk, &
-                   workni(:,:), a2D)
-             call accum_hist_field(n_peakval(n,:), iblk, &
-                   worknj(:,:), a2D)
+             call accum_hist_field(n_algalpeak(n,:), iblk, workni(:,:), a2D)
+             call accum_hist_field(n_peakval  (n,:), iblk, worknj(:,:), a2D)
          enddo      ! n
       endif !f_algalpeak
 
@@ -2341,181 +2276,145 @@
       !
       if (f_zaeronet  (1:1) /= 'x') then
          do n=1,n_zaero
-            call accum_hist_field(n_zaeronet(n,:),    iblk, &
-                   ice_bio_net(:,:,nlt_zaero(n), iblk), a2D)
+            call accum_hist_field(n_zaeronet(n,:), iblk, ice_bio_net(:,:,nlt_zaero  (n), iblk)            , a2D)
          enddo
       endif !f_zaeronet
-      if (f_chlnet  (1:1) /= 'x') then
+      if (f_chlnet    (1:1) /= 'x') then
          do n=1,n_algae
-            call accum_hist_field(n_chlnet(n,:),    iblk, &
-                   R_chl2N(n)*ice_bio_net(:,:,nlt_bgc_N(n), iblk), a2D)
+            call accum_hist_field(n_chlnet  (n,:), iblk, ice_bio_net(:,:,nlt_bgc_N  (n), iblk), R_chl2N(n), a2D)
          enddo
       endif !f_chlnet
-      if (f_Nnet  (1:1) /= 'x') then
+      if (f_Nnet      (1:1) /= 'x') then
          do n=1,n_algae
-            call accum_hist_field(n_Nnet(n,:),    iblk, &
-                   ice_bio_net(:,:,nlt_bgc_N(n), iblk), a2D)
+            call accum_hist_field(n_Nnet    (n,:), iblk, ice_bio_net(:,:,nlt_bgc_N  (n), iblk)            , a2D)
          enddo
       endif !f_Nnet
-      if (f_Cnet  (1:1) /= 'x') then
+      if (f_Cnet      (1:1) /= 'x') then
          do n=1,n_algae
-            call accum_hist_field(n_Cnet(n,:),    iblk, &
-                   R_C2N(n) *ice_bio_net(:,:,nlt_bgc_N(n), iblk), a2D)
+            call accum_hist_field(n_Cnet    (n,:), iblk, ice_bio_net(:,:,nlt_bgc_N  (n), iblk), R_C2N  (n), a2D)
          enddo
       endif !f_Cnet
-      if (f_DOCnet  (1:1) /= 'x') then
+      if (f_DOCnet    (1:1) /= 'x') then
          do n=1,n_doc
-            call accum_hist_field(n_DOCnet(n,:),    iblk, &
-                   ice_bio_net(:,:,nlt_bgc_DOC(n), iblk), a2D)
+            call accum_hist_field(n_DOCnet  (n,:), iblk, ice_bio_net(:,:,nlt_bgc_DOC(n), iblk)            , a2D)
          enddo
       endif !f_DOCnet
-      if (f_DICnet  (1:1) /= 'x') then
+      if (f_DICnet    (1:1) /= 'x') then
          do n=1,n_dic
-            call accum_hist_field(n_DICnet(n,:),    iblk, &
-                   ice_bio_net(:,:,nlt_bgc_DIC(n), iblk), a2D)
+            call accum_hist_field(n_DICnet  (n,:), iblk, ice_bio_net(:,:,nlt_bgc_DIC(n), iblk)            , a2D)
          enddo
       endif !f_DICnet
-      if (f_DONnet  (1:1) /= 'x') then
+      if (f_DONnet   (1:1) /= 'x') then
          do n=1,n_don
-            call accum_hist_field(n_DONnet(n,:),    iblk, &
-                   ice_bio_net(:,:,nlt_bgc_DON(n), iblk), a2D)
+            call accum_hist_field(n_DONnet  (n,:), iblk, ice_bio_net(:,:,nlt_bgc_DON(n), iblk)            , a2D)
          enddo
       endif !f_DONnet
       if (f_Fednet   (1:1) /= 'x') then
          do n=1,n_fed
-            call accum_hist_field(n_Fednet (n,:),    iblk, &
-                   ice_bio_net(:,:,nlt_bgc_Fed (n), iblk), a2D)
+            call accum_hist_field(n_Fednet  (n,:), iblk, ice_bio_net(:,:,nlt_bgc_Fed(n), iblk)            , a2D)
          enddo
       endif !f_Fednet
       if (f_Fepnet   (1:1) /= 'x') then
          do n=1,n_fep
-            call accum_hist_field(n_Fepnet (n,:),    iblk, &
-                   ice_bio_net(:,:,nlt_bgc_Fep (n), iblk), a2D)
+            call accum_hist_field(n_Fepnet  (n,:), iblk, ice_bio_net(:,:,nlt_bgc_Fep(n), iblk)            , a2D)
          enddo
       endif !f_Fepnet
 
-      if (f_Nitnet  (1:1) /= 'x') &
-         call accum_hist_field(n_Nitnet,   iblk, &
-                   ice_bio_net(:,:,nlt_bgc_Nit, iblk), a2D)
-      if (f_Amnet  (1:1) /= 'x') &
-         call accum_hist_field(n_Amnet,   iblk, &
-                   ice_bio_net(:,:,nlt_bgc_Am, iblk), a2D)
-      if (f_Silnet  (1:1) /= 'x') &
-         call accum_hist_field(n_Silnet,   iblk, &
-                   ice_bio_net(:,:,nlt_bgc_Sil, iblk), a2D)
-      if (f_humnet  (1:1) /= 'x') &
-         call accum_hist_field(n_humnet,   iblk, &
-                   ice_bio_net(:,:,nlt_bgc_hum, iblk), a2D)
+      if (f_Nitnet    (1:1) /= 'x') &
+         call accum_hist_field(n_Nitnet  , iblk, ice_bio_net(:,:,nlt_bgc_Nit  , iblk), a2D)
+      if (f_Amnet     (1:1) /= 'x') &
+         call accum_hist_field(n_Amnet   , iblk, ice_bio_net(:,:,nlt_bgc_Am   , iblk), a2D)
+      if (f_Silnet    (1:1) /= 'x') &
+         call accum_hist_field(n_Silnet  , iblk, ice_bio_net(:,:,nlt_bgc_Sil  , iblk), a2D)
+      if (f_humnet    (1:1) /= 'x') &
+         call accum_hist_field(n_humnet  , iblk, ice_bio_net(:,:,nlt_bgc_hum  , iblk), a2D)
       if (f_DMSPpnet  (1:1) /= 'x') &
-         call accum_hist_field(n_DMSPpnet,   iblk, &
-                  ice_bio_net(:,:,nlt_bgc_DMSPp, iblk), a2D)
+         call accum_hist_field(n_DMSPpnet, iblk, ice_bio_net(:,:,nlt_bgc_DMSPp, iblk), a2D)
       if (f_DMSPdnet  (1:1) /= 'x') &
-         call accum_hist_field(n_DMSPdnet,   iblk, &
-                   ice_bio_net(:,:,nlt_bgc_DMSPd, iblk), a2D)
-      if (f_DMSnet  (1:1) /= 'x') &
-         call accum_hist_field(n_DMSnet,   iblk, &
-                   ice_bio_net(:,:,nlt_bgc_DMS, iblk), a2D)
-      if (f_PONnet  (1:1) /= 'x') &
-         call accum_hist_field(n_PONnet,   iblk, &
-                   ice_bio_net(:,:,nlt_bgc_PON, iblk), a2D)
+         call accum_hist_field(n_DMSPdnet, iblk, ice_bio_net(:,:,nlt_bgc_DMSPd, iblk), a2D)
+      if (f_DMSnet    (1:1) /= 'x') &
+         call accum_hist_field(n_DMSnet  , iblk, ice_bio_net(:,:,nlt_bgc_DMS  , iblk), a2D)
+      if (f_PONnet    (1:1) /= 'x') &
+         call accum_hist_field(n_PONnet  , iblk, ice_bio_net(:,:,nlt_bgc_PON  , iblk), a2D)
       !
       !  snow_bio_net
       !
       if (f_zaerosnow  (1:1) /= 'x') then
          do n=1,n_zaero
-            call accum_hist_field(n_zaerosnow(n,:),    iblk, &
-                   snow_bio_net(:,:,nlt_zaero(n), iblk), a2D)
+            call accum_hist_field(n_zaerosnow(n,:), iblk, snow_bio_net(:,:,nlt_zaero(n)  , iblk)            , a2D)
          enddo
       endif !f_zaerosnow
-      if (f_chlsnow  (1:1) /= 'x') then
+      if (f_chlsnow    (1:1) /= 'x') then
          do n=1,n_algae
-            call accum_hist_field(n_chlsnow(n,:),    iblk, &
-                   R_chl2N(n)*snow_bio_net(:,:,nlt_bgc_N(n), iblk), a2D)
+            call accum_hist_field(n_chlsnow  (n,:), iblk, snow_bio_net(:,:,nlt_bgc_N(n)  , iblk), R_chl2N(n), a2D)
          enddo
       endif !f_chlsnow
-      if (f_Nsnow  (1:1) /= 'x') then
+      if (f_Nsnow      (1:1) /= 'x') then
          do n=1,n_algae
-            call accum_hist_field(n_Nsnow(n,:),    iblk, &
-                   snow_bio_net(:,:,nlt_bgc_N(n), iblk), a2D)
+            call accum_hist_field(n_Nsnow    (n,:), iblk, snow_bio_net(:,:,nlt_bgc_N(n)  , iblk)            , a2D)
          enddo
       endif !f_Nsnow
-      if (f_Csnow  (1:1) /= 'x') then
+      if (f_Csnow      (1:1) /= 'x') then
          do n=1,n_algae
-            call accum_hist_field(n_Csnow(n,:),    iblk, &
-                   R_C2N(n)*snow_bio_net(:,:,nlt_bgc_N(n), iblk), a2D)
+            call accum_hist_field(n_Csnow    (n,:), iblk, snow_bio_net(:,:,nlt_bgc_N(n)  , iblk), R_C2N  (n), a2D)
          enddo
       endif !f_Csnow
-      if (f_DOCsnow  (1:1) /= 'x') then
+      if (f_DOCsnow    (1:1) /= 'x') then
          do n=1,n_doc
-            call accum_hist_field(n_DOCsnow(n,:),    iblk, &
-                   snow_bio_net(:,:,nlt_bgc_DOC(n), iblk), a2D)
+            call accum_hist_field(n_DOCsnow  (n,:), iblk, snow_bio_net(:,:,nlt_bgc_DOC(n), iblk)            , a2D)
          enddo
       endif !f_DOCsnow
-      if (f_DICsnow  (1:1) /= 'x') then
+      if (f_DICsnow    (1:1) /= 'x') then
          do n=1,n_dic
-            call accum_hist_field(n_DICsnow(n,:),    iblk, &
-                   snow_bio_net(:,:,nlt_bgc_DIC(n), iblk), a2D)
+            call accum_hist_field(n_DICsnow  (n,:), iblk, snow_bio_net(:,:,nlt_bgc_DIC(n), iblk)            , a2D)
          enddo
       endif !f_DICsnow
-      if (f_DONsnow  (1:1) /= 'x') then
+      if (f_DONsnow    (1:1) /= 'x') then
          do n=1,n_don
-            call accum_hist_field(n_DONsnow(n,:),    iblk, &
-                   snow_bio_net(:,:,nlt_bgc_DON(n), iblk), a2D)
+            call accum_hist_field(n_DONsnow  (n,:), iblk, snow_bio_net(:,:,nlt_bgc_DON(n), iblk)            , a2D)
          enddo
       endif !f_DONsnow
       if (f_Fedsnow   (1:1) /= 'x') then
          do n=1,n_fed
-            call accum_hist_field(n_Fedsnow (n,:),    iblk, &
-                   snow_bio_net(:,:,nlt_bgc_Fed (n), iblk), a2D)
+            call accum_hist_field(n_Fedsnow  (n,:), iblk, snow_bio_net(:,:,nlt_bgc_Fed(n), iblk)            , a2D)
          enddo
       endif !f_Fedsnow
       if (f_Fepsnow   (1:1) /= 'x') then
          do n=1,n_fep
-            call accum_hist_field(n_Fepsnow (n,:),    iblk, &
-                   snow_bio_net(:,:,nlt_bgc_Fep (n), iblk), a2D)
+            call accum_hist_field(n_Fepsnow (n,:), iblk, snow_bio_net(:,:,nlt_bgc_Fep (n), iblk)            , a2D)
          enddo
       endif !f_Fepsnow
 
       if (f_Nitsnow  (1:1) /= 'x') &
-         call accum_hist_field(n_Nitsnow,   iblk, &
-                   snow_bio_net(:,:,nlt_bgc_Nit, iblk), a2D)
-      if (f_Amsnow  (1:1) /= 'x') &
-         call accum_hist_field(n_Amsnow,   iblk, &
-                   snow_bio_net(:,:,nlt_bgc_Am, iblk), a2D)
+         call accum_hist_field(n_Nitsnow  , iblk, snow_bio_net(:,:,nlt_bgc_Nit  , iblk), a2D)
+      if (f_Amsnow   (1:1) /= 'x') &
+         call accum_hist_field(n_Amsnow   , iblk, snow_bio_net(:,:,nlt_bgc_Am   , iblk), a2D)
       if (f_Silsnow  (1:1) /= 'x') &
-         call accum_hist_field(n_Silsnow,   iblk, &
-                   snow_bio_net(:,:,nlt_bgc_Sil, iblk), a2D)
+         call accum_hist_field(n_Silsnow  , iblk, snow_bio_net(:,:,nlt_bgc_Sil  , iblk), a2D)
       if (f_humsnow  (1:1) /= 'x') &
-         call accum_hist_field(n_humsnow,   iblk, &
-                   snow_bio_net(:,:,nlt_bgc_hum, iblk), a2D)
-      if (f_DMSPpsnow  (1:1) /= 'x') &
-         call accum_hist_field(n_DMSPpsnow,   iblk, &
-                   snow_bio_net(:,:,nlt_bgc_DMSPp, iblk), a2D)
-      if (f_DMSPdsnow  (1:1) /= 'x') &
-         call accum_hist_field(n_DMSPdsnow,   iblk, &
-                   snow_bio_net(:,:,nlt_bgc_DMSPd, iblk), a2D)
+         call accum_hist_field(n_humsnow  , iblk, snow_bio_net(:,:,nlt_bgc_hum  , iblk), a2D)
+      if (f_DMSPpsnow(1:1) /= 'x') &
+         call accum_hist_field(n_DMSPpsnow, iblk, snow_bio_net(:,:,nlt_bgc_DMSPp, iblk), a2D)
+      if (f_DMSPdsnow(1:1) /= 'x') &
+         call accum_hist_field(n_DMSPdsnow, iblk, snow_bio_net(:,:,nlt_bgc_DMSPd, iblk), a2D)
       if (f_DMSsnow  (1:1) /= 'x') &
-         call accum_hist_field(n_DMSsnow,   iblk, &
-                   snow_bio_net(:,:,nlt_bgc_DMS, iblk), a2D)
+         call accum_hist_field(n_DMSsnow  , iblk, snow_bio_net(:,:,nlt_bgc_DMS  , iblk), a2D)
       if (f_PONsnow  (1:1) /= 'x') &
-         call accum_hist_field(n_PONsnow,   iblk, &
-                   snow_bio_net(:,:,nlt_bgc_PON, iblk), a2D)
+         call accum_hist_field(n_PONsnow  , iblk, snow_bio_net(:,:,nlt_bgc_PON  , iblk), a2D)
       !
       ! mobile frac
       !
-      if (f_zaerofrac  (1:1) /= 'x') then
+      if (f_zaerofrac(1:1) /= 'x') then
          do n=1,n_zaero
-            call accum_hist_field(n_zaerofrac(n,:),    iblk, &
-                   trcr(:,:,nt_zbgc_frac - 1 + nlt_zaero(n), iblk), a2D)
+            call accum_hist_field(n_zaerofrac(n,:), iblk, trcr(:,:,nt_zbgc_frac - 1 + nlt_zaero(n), iblk), a2D)
          enddo
       endif !f_zaerofrac
       if (f_chlfrac  (1:1) /= 'x') then
          do n=1,n_algae
-            call accum_hist_field(n_chlfrac(n,:),    iblk, &
-                   trcr(:,:,nlt_bgc_N(n), iblk), a2D)
+            call accum_hist_field(n_chlfrac(n,:), iblk, trcr(:,:,nlt_bgc_N(n), iblk), a2D)
          enddo
       endif !f_chlfrac
-      if (f_Nfrac  (1:1) /= 'x') then
+      if (f_Nfrac    (1:1) /= 'x') then
          do n=1,n_algae
             call accum_hist_field(n_Nfrac(n,:),    iblk, &
                    trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_N(n), iblk), a2D)
@@ -2539,13 +2438,13 @@
                    trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_DON(n), iblk), a2D)
          enddo
       endif !f_DONfrac
-      if (f_Fedfrac   (1:1) /= 'x') then
+      if (f_Fedfrac  (1:1) /= 'x') then
          do n=1,n_fed
             call accum_hist_field(n_Fedfrac (n,:),    iblk, &
                    trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_Fed (n), iblk), a2D)
          enddo
       endif !f_Fedfrac
-      if (f_Fepfrac   (1:1) /= 'x') then
+      if (f_Fepfrac  (1:1) /= 'x') then
          do n=1,n_fep
             call accum_hist_field(n_Fepfrac (n,:),    iblk, &
                    trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_Fep (n), iblk), a2D)
@@ -2553,36 +2452,27 @@
       endif !f_Fepfrac
 
       if (f_Nitfrac  (1:1) /= 'x') &
-         call accum_hist_field(n_Nitfrac,   iblk, &
-                   trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_Nit, iblk), a2D)
-      if (f_Amfrac  (1:1) /= 'x') &
-         call accum_hist_field(n_Amfrac,   iblk, &
-                   trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_Am, iblk), a2D)
+         call accum_hist_field(n_Nitfrac  , iblk, trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_Nit  , iblk), a2D)
+      if (f_Amfrac   (1:1) /= 'x') &
+         call accum_hist_field(n_Amfrac   , iblk, trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_Am   , iblk), a2D)
       if (f_Silfrac  (1:1) /= 'x') &
-         call accum_hist_field(n_Silfrac,   iblk, &
-                   trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_Sil, iblk), a2D)
+         call accum_hist_field(n_Silfrac  , iblk, trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_Sil  , iblk), a2D)
       if (f_humfrac  (1:1) /= 'x') &
-         call accum_hist_field(n_humfrac,   iblk, &
-                   trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_hum, iblk), a2D)
-      if (f_DMSPpfrac  (1:1) /= 'x') &
-         call accum_hist_field(n_DMSPpfrac,   iblk, &
-                   trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_DMSPp, iblk), a2D)
+         call accum_hist_field(n_humfrac  , iblk, trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_hum  , iblk), a2D)
+      if (f_DMSPpfrac(1:1) /= 'x') &
+         call accum_hist_field(n_DMSPpfrac, iblk, trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_DMSPp, iblk), a2D)
       if (f_DMSPdfrac  (1:1) /= 'x') &
-         call accum_hist_field(n_DMSPdfrac,   iblk, &
-                   trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_DMSPd, iblk), a2D)
+         call accum_hist_field(n_DMSPdfrac, iblk, trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_DMSPd, iblk), a2D)
       if (f_DMSfrac  (1:1) /= 'x') &
-         call accum_hist_field(n_DMSfrac,   iblk, &
-                   trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_DMS, iblk), a2D)
+         call accum_hist_field(n_DMSfrac  , iblk, trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_DMS  , iblk), a2D)
       if (f_PONfrac  (1:1) /= 'x') &
-         call accum_hist_field(n_PONfrac,   iblk, &
-                   trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_PON, iblk), a2D)
+         call accum_hist_field(n_PONfrac  , iblk, trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_PON  , iblk), a2D)
 
      endif  ! z_tracers
 
       ! brine
       if (f_hbri  (1:1) /= 'x') &
-         call accum_hist_field(n_hbri,     iblk, &
-                        hbri(:,:,iblk), a2D)
+         call accum_hist_field(n_hbri, iblk, hbri(:,:,iblk), a2D)
 
      endif ! 2d bgc tracers, tr_aero, tr_brine, skl_bgc
      endif ! allocated(a2D)
@@ -2594,8 +2484,7 @@
       ! 3Dc bgc category fields
 
       if (f_fbri   (1:1) /= 'x') &
-         call accum_hist_field(n_fbri-n2D, iblk, ncat_hist, &
-                               trcrn(:,:,nt_fbri,1:ncat_hist,iblk), a3Dc)
+         call accum_hist_field(n_fbri-n2D, iblk, ncat_hist, trcrn(:,:,nt_fbri,1:ncat_hist,iblk), a3Dc)
      endif
      endif ! allocated(a3Dc)
 
@@ -2609,14 +2498,13 @@
             do j = jlo, jhi
                do i = ilo, ihi
                   if (aicen(i,j,n,iblk) > c0) then
-                      workz(i,j,1:nzblyr) =  workz(i,j,1:nzblyr) + bTiz(i,j,1:nzblyr,n,iblk)*&
-                               aicen(i,j,n,iblk)
+                      workz(i,j,1:nzblyr) =  workz(i,j,1:nzblyr) + bTiz(i,j,1:nzblyr,n,iblk) &
+                                          * aicen(i,j,n,iblk)
                   endif
                enddo  ! i
             enddo     ! j
          enddo        ! n
-         call accum_hist_field(n_bTin-n3Dzcum, iblk, nzblyr, &
-                               workz(:,:,1:nzblyr), a3Db)
+         call accum_hist_field(n_bTin-n3Dzcum, iblk, nzblyr, workz(:,:,1:nzblyr), a3Db)
       endif
 
       if (f_bphi  (1:1) /= 'x') then
@@ -2625,14 +2513,13 @@
             do j = jlo, jhi
                do i = ilo, ihi
                   if (aicen(i,j,n,iblk) > c0) then
-                      workz(i,j,1:nzblyr) =  workz(i,j,1:nzblyr) + bphi(i,j,1:nzblyr,n,iblk)*&
-                               aicen(i,j,n,iblk)
+                      workz(i,j,1:nzblyr) =  workz(i,j,1:nzblyr) + bphi(i,j,1:nzblyr,n,iblk) &
+                                          * aicen(i,j,n,iblk)
                   endif
                enddo ! i
             enddo    ! j
          enddo       ! n
-         call accum_hist_field(n_bphi-n3Dzcum, iblk, nzblyr, &
-                               workz(:,:,1:nzblyr), a3Db)
+         call accum_hist_field(n_bphi-n3Dzcum, iblk, nzblyr, workz(:,:,1:nzblyr), a3Db)
       endif
 
       if (f_zfswin   (1:1) /= 'x') then
@@ -2641,16 +2528,15 @@
             do j = jlo, jhi
                do i = ilo, ihi
                 if (aicen(i,j,n,iblk) > c0) then
-                   workz(i,j,1:nblyr+1) = workz(i,j,1:nblyr+1)+ zfswin(i,j,1:nblyr+1,n,iblk)*&
-                       aicen(i,j,n,iblk)
-                   workz(i,j,nzblyr) = workz(i,j,nzblyr) + zfswin(i,j,nblyr+1,n,iblk)*&
-                       aicen(i,j,n,iblk)
+                   workz(i,j,1:nblyr+1) = workz(i,j,1:nblyr+1)+ zfswin(i,j,1:nblyr+1,n,iblk) &
+                                        * aicen(i,j,n,iblk)
+                   workz(i,j,nzblyr) = workz(i,j,nzblyr) + zfswin(i,j,nblyr+1,n,iblk)        &
+                                     * aicen(i,j,n,iblk)
                 endif
                enddo ! i
             enddo    ! j
          enddo       ! n
-         call accum_hist_field(n_zfswin-n3Dzcum, iblk, nzblyr, &
-                                  workz(:,:,1:nzblyr), a3Db)
+         call accum_hist_field(n_zfswin-n3Dzcum, iblk, nzblyr, workz(:,:,1:nzblyr), a3Db)
       endif
 
       if (f_iDi   (1:1) /= 'x') then
@@ -2667,8 +2553,7 @@
               enddo  ! j
             enddo    ! k
           enddo      ! n
-          call accum_hist_field(n_iDi-n3Dzcum, iblk, nzblyr, &
-                                  workz(:,:,1:nzblyr), a3Db)
+          call accum_hist_field(n_iDi-n3Dzcum, iblk, nzblyr, workz(:,:,1:nzblyr), a3Db)
       endif
 
       if (f_iki   (1:1) /= 'x') then
@@ -2687,8 +2572,7 @@
             enddo    ! j
             enddo    ! k
          enddo       ! n
-         call accum_hist_field(n_iki-n3Dzcum, iblk, nzblyr,  &
-                                  workz(:,:,1:nzblyr), a3Db)
+         call accum_hist_field(n_iki-n3Dzcum, iblk, nzblyr, workz(:,:,1:nzblyr), a3Db)
       endif
 
      endif ! 3Db fields
@@ -2712,8 +2596,7 @@
                   endif
                 enddo ! i
              enddo    ! j
-           call accum_hist_field(n_zaeros(k,:)-n3Dbcum, iblk, nzalyr, &
-                                  workz(:,:,1:nzalyr), a3Da)
+           call accum_hist_field(n_zaeros(k,:)-n3Dbcum, iblk, nzalyr, workz(:,:,1:nzalyr), a3Da)
          enddo !k
       endif  !f_zaero
       if (f_bgc_N   (1:1) /= 'x') then
@@ -2738,10 +2621,8 @@
                   endif
                 enddo ! i
              enddo    ! j
-           call accum_hist_field(n_bgc_N(k,:)-n3Dbcum, iblk, nzalyr,  &
-                                  workz(:,:,1:nzalyr), a3Da)
-           call accum_hist_field(n_bgc_N_cat1(k,:)-n3Dbcum, iblk, nzalyr,  &
-                                  workz2(:,:,1:nzalyr), a3Da)
+           call accum_hist_field(n_bgc_N(k,:)-n3Dbcum, iblk, nzalyr, workz(:,:,1:nzalyr), a3Da)
+           call accum_hist_field(n_bgc_N_cat1(k,:)-n3Dbcum, iblk, nzalyr, workz2(:,:,1:nzalyr), a3Da)
          enddo !k
       endif  !f_bgc_N
       if (f_bgc_C   (1:1) /= 'x') then
@@ -2758,8 +2639,7 @@
                   endif
                 enddo ! i
              enddo    ! j
-           call accum_hist_field(n_bgc_C(k,:)-n3Dbcum, iblk, nzalyr, &
-                                  workz(:,:,1:nzalyr), a3Da)
+           call accum_hist_field(n_bgc_C(k,:)-n3Dbcum, iblk, nzalyr, workz(:,:,1:nzalyr), a3Da)
          enddo !k
       endif  !f_bgc_C
       if (f_bgc_DOC   (1:1) /= 'x') then
@@ -2784,10 +2664,8 @@
                   endif
                 enddo ! i
              enddo    ! j
-           call accum_hist_field(n_bgc_DOC(k,:)-n3Dbcum, iblk, nzalyr,  &
-                                  workz(:,:,1:nzalyr), a3Da)
-           call accum_hist_field(n_bgc_DOC_cat1(k,:)-n3Dbcum, iblk, nzalyr,  &
-                                  workz2(:,:,1:nzalyr), a3Da)
+           call accum_hist_field(n_bgc_DOC     (k,:)-n3Dbcum, iblk, nzalyr, workz (:,:,1:nzalyr), a3Da)
+           call accum_hist_field(n_bgc_DOC_cat1(k,:)-n3Dbcum, iblk, nzalyr, workz2(:,:,1:nzalyr), a3Da)
          enddo !k
       endif  !f_bgc_DOC
       if (f_bgc_DIC   (1:1) /= 'x') then
@@ -2812,10 +2690,8 @@
                   endif
                 enddo ! i
              enddo    ! j
-           call accum_hist_field(n_bgc_DIC(k,:)-n3Dbcum, iblk, nzalyr,  &
-                                  workz(:,:,1:nzalyr), a3Da)
-          call accum_hist_field(n_bgc_DIC_cat1(k,:)-n3Dbcum, iblk, nzalyr,  &
-                                  workz2(:,:,1:nzalyr), a3Da)
+           call accum_hist_field(n_bgc_DIC    (k,:)-n3Dbcum, iblk, nzalyr, workz (:,:,1:nzalyr), a3Da)
+          call accum_hist_field(n_bgc_DIC_cat1(k,:)-n3Dbcum, iblk, nzalyr, workz2(:,:,1:nzalyr), a3Da)
          enddo !k
       endif  !f_bgc_DIC
       if (f_bgc_DON   (1:1) /= 'x') then
@@ -2840,10 +2716,8 @@
                   endif
                 enddo ! i
              enddo    ! j
-           call accum_hist_field(n_bgc_DON(k,:)-n3Dbcum, iblk, nzalyr,  &
-                                  workz(:,:,1:nzalyr), a3Da)
-           call accum_hist_field(n_bgc_DON_cat1(k,:)-n3Dbcum, iblk, nzalyr,  &
-                                  workz2(:,:,1:nzalyr), a3Da)
+           call accum_hist_field(n_bgc_DON     (k,:)-n3Dbcum, iblk, nzalyr, workz (:,:,1:nzalyr), a3Da)
+           call accum_hist_field(n_bgc_DON_cat1(k,:)-n3Dbcum, iblk, nzalyr, workz2(:,:,1:nzalyr), a3Da)
          enddo !k
       endif  !f_bgc_DON
       if (f_bgc_Fed    (1:1) /= 'x') then
@@ -2868,10 +2742,8 @@
                   endif
                 enddo ! i
              enddo    ! j
-           call accum_hist_field(n_bgc_Fed (k,:)-n3Dbcum, iblk, nzalyr,  &
-                                  workz(:,:,1:nzalyr), a3Da)
-           call accum_hist_field(n_bgc_Fed_cat1 (k,:)-n3Dbcum, iblk, nzalyr,  &
-                                  workz2(:,:,1:nzalyr), a3Da)
+           call accum_hist_field(n_bgc_Fed      (k,:)-n3Dbcum, iblk, nzalyr, workz (:,:,1:nzalyr), a3Da)
+           call accum_hist_field(n_bgc_Fed_cat1 (k,:)-n3Dbcum, iblk, nzalyr, workz2(:,:,1:nzalyr), a3Da)
          enddo !k
       endif  !f_bgc_Fed
       if (f_bgc_Fep    (1:1) /= 'x') then
@@ -2896,10 +2768,8 @@
                   endif
                 enddo ! i
              enddo    ! j
-           call accum_hist_field(n_bgc_Fep (k,:)-n3Dbcum, iblk, nzalyr,  &
-                                  workz(:,:,1:nzalyr), a3Da)
-           call accum_hist_field(n_bgc_Fep_cat1 (k,:)-n3Dbcum, iblk, nzalyr,  &
-                                  workz2(:,:,1:nzalyr), a3Da)
+           call accum_hist_field(n_bgc_Fep      (k,:)-n3Dbcum, iblk, nzalyr, workz (:,:,1:nzalyr), a3Da)
+           call accum_hist_field(n_bgc_Fep_cat1 (k,:)-n3Dbcum, iblk, nzalyr, workz2(:,:,1:nzalyr), a3Da)
          enddo !k
       endif  !f_bgc_Fep
       if (f_bgc_chl   (1:1) /= 'x') then
@@ -2916,8 +2786,7 @@
                   endif
                 enddo ! i
              enddo    ! j
-           call accum_hist_field(n_bgc_chl(k,:)-n3Dbcum, iblk, nzalyr,  &
-                                  workz(:,:,1:nzalyr), a3Da)
+           call accum_hist_field(n_bgc_chl(k,:)-n3Dbcum, iblk, nzalyr, workz(:,:,1:nzalyr), a3Da)
          enddo !k
       endif  !f_bgc_chl
 
@@ -2942,10 +2811,8 @@
                   endif
                 enddo ! i
              enddo    ! j
-         call accum_hist_field(n_bgc_Nit-n3Dbcum, iblk, nzalyr,  &
-                                  workz(:,:,1:nzalyr), a3Da)
-         call accum_hist_field(n_bgc_Nit_cat1-n3Dbcum, iblk, nzalyr,  &
-                                  workz2(:,:,1:nzalyr), a3Da)
+         call accum_hist_field(n_bgc_Nit-n3Dbcum     , iblk, nzalyr, workz (:,:,1:nzalyr), a3Da)
+         call accum_hist_field(n_bgc_Nit_cat1-n3Dbcum, iblk, nzalyr, workz2(:,:,1:nzalyr), a3Da)
       endif
 
       if (f_bgc_Am   (1:1) /= 'x') then
@@ -2969,10 +2836,8 @@
                   endif
                 enddo ! i
              enddo    ! j
-         call accum_hist_field(n_bgc_Am-n3Dbcum, iblk, nzalyr,  &
-                                  workz(:,:,1:nzalyr), a3Da)
-         call accum_hist_field(n_bgc_Am_cat1-n3Dbcum, iblk, nzalyr,  &
-                                  workz2(:,:,1:nzalyr), a3Da)
+         call accum_hist_field(n_bgc_Am-n3Dbcum     , iblk, nzalyr, workz (:,:,1:nzalyr), a3Da)
+         call accum_hist_field(n_bgc_Am_cat1-n3Dbcum, iblk, nzalyr, workz2(:,:,1:nzalyr), a3Da)
       endif
 
       if (f_bgc_Sil   (1:1) /= 'x') then
@@ -2996,10 +2861,8 @@
                   endif
                 enddo ! i
              enddo    ! j
-         call accum_hist_field(n_bgc_Sil-n3Dbcum, iblk, nzalyr,  &
-                                  workz(:,:,1:nzalyr), a3Da)
-         call accum_hist_field(n_bgc_Sil_cat1-n3Dbcum, iblk, nzalyr,  &
-                                  workz2(:,:,1:nzalyr), a3Da)
+         call accum_hist_field(n_bgc_Sil-n3Dbcum     , iblk, nzalyr, workz (:,:,1:nzalyr), a3Da)
+         call accum_hist_field(n_bgc_Sil_cat1-n3Dbcum, iblk, nzalyr, workz2(:,:,1:nzalyr), a3Da)
       endif
 
 
@@ -3024,10 +2887,8 @@
                   endif
                 enddo ! i
              enddo    ! j
-         call accum_hist_field(n_bgc_hum-n3Dbcum, iblk, nzalyr,  &
-                                  workz(:,:,1:nzalyr), a3Da)
-         call accum_hist_field(n_bgc_hum_cat1-n3Dbcum, iblk, nzalyr,  &
-                                  workz2(:,:,1:nzalyr), a3Da)
+         call accum_hist_field(n_bgc_hum-n3Dbcum     , iblk, nzalyr, workz (:,:,1:nzalyr), a3Da)
+         call accum_hist_field(n_bgc_hum_cat1-n3Dbcum, iblk, nzalyr, workz2(:,:,1:nzalyr), a3Da)
       endif
 
       if (f_bgc_DMSPd   (1:1) /= 'x') then
@@ -3051,10 +2912,8 @@
                   endif
                 enddo ! i
              enddo    ! j
-         call accum_hist_field(n_bgc_DMSPd-n3Dbcum, iblk, nzalyr,  &
-                                  workz(:,:,1:nzalyr), a3Da)
-         call accum_hist_field(n_bgc_DMSPd_cat1-n3Dbcum, iblk, nzalyr,  &
-                                  workz2(:,:,1:nzalyr), a3Da)
+         call accum_hist_field(n_bgc_DMSPd-n3Dbcum     , iblk, nzalyr, workz (:,:,1:nzalyr), a3Da)
+         call accum_hist_field(n_bgc_DMSPd_cat1-n3Dbcum, iblk, nzalyr, workz2(:,:,1:nzalyr), a3Da)
       endif
 
       if (f_bgc_DMSPp   (1:1) /= 'x') then
@@ -3070,8 +2929,7 @@
                   endif
                 enddo ! i
              enddo    ! j
-         call accum_hist_field(n_bgc_DMSPp-n3Dbcum, iblk, nzalyr,  &
-                                  workz(:,:,1:nzalyr), a3Da)
+         call accum_hist_field(n_bgc_DMSPp-n3Dbcum, iblk, nzalyr, workz(:,:,1:nzalyr), a3Da)
       endif
 
       if (f_bgc_DMS   (1:1) /= 'x') then
@@ -3095,10 +2953,8 @@
                   endif
                 enddo ! i
              enddo    ! j
-         call accum_hist_field(n_bgc_DMS-n3Dbcum, iblk, nzalyr,  &
-                                  workz(:,:,1:nzalyr), a3Da)
-         call accum_hist_field(n_bgc_DMS_cat1-n3Dbcum, iblk, nzalyr,  &
-                                  workz2(:,:,1:nzalyr), a3Da)
+         call accum_hist_field(n_bgc_DMS-n3Dbcum     , iblk, nzalyr, workz (:,:,1:nzalyr), a3Da)
+         call accum_hist_field(n_bgc_DMS_cat1-n3Dbcum, iblk, nzalyr, workz2(:,:,1:nzalyr), a3Da)
       endif
 
       if (f_bgc_PON   (1:1) /= 'x') then
@@ -3122,10 +2978,8 @@
                   endif
                 enddo ! i
              enddo    ! j
-         call accum_hist_field(n_bgc_PON-n3Dbcum, iblk, nzalyr,  &
-                                  workz(:,:,1:nzalyr), a3Da)
-         call accum_hist_field(n_bgc_PON_cat1-n3Dbcum, iblk, nzalyr,  &
-                                  workz2(:,:,1:nzalyr), a3Da)
+         call accum_hist_field(n_bgc_PON-n3Dbcum     , iblk, nzalyr, workz (:,:,1:nzalyr), a3Da)
+         call accum_hist_field(n_bgc_PON_cat1-n3Dbcum, iblk, nzalyr, workz2(:,:,1:nzalyr), a3Da)
       endif
 
       endif ! z_tracers, 3Da tracers

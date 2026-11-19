@@ -289,31 +289,23 @@
         call accum_hist_field(n_Cdn_atm, iblk, Cdn_atm(:,:,iblk), a2D)
       if (f_Cdn_ocn     (1:1) /= 'x') &
         call accum_hist_field(n_Cdn_ocn, iblk, Cdn_ocn(:,:,iblk), a2D)
-      if (f_drag     (1:1) /= 'x') then
-        call accum_hist_field(n_hfreebd, iblk, hfreebd(:,:,iblk), a2D)
-        call accum_hist_field(n_hdraft, iblk, hdraft(:,:,iblk), a2D)
-        call accum_hist_field(n_hridge, iblk, hridge(:,:,iblk), a2D)
-        call accum_hist_field(n_distrdg, iblk, distrdg(:,:,iblk), a2D)
-        call accum_hist_field(n_hkeel, iblk, hkeel(:,:,iblk), a2D)
-        call accum_hist_field(n_dkeel, iblk, dkeel(:,:,iblk), a2D)
-        call accum_hist_field(n_lfloe, iblk, lfloe(:,:,iblk), a2D)
-        call accum_hist_field(n_dfloe, iblk, dfloe(:,:,iblk), a2D)
-        call accum_hist_field(n_Cdn_atm_rdg, &
-                              iblk, Cdn_atm_rdg(:,:,iblk), a2D)
-        call accum_hist_field(n_Cdn_atm_floe, &
-                              iblk, Cdn_atm_floe(:,:,iblk), a2D)
-        call accum_hist_field(n_Cdn_atm_pond, &
-                              iblk, Cdn_atm_pond(:,:,iblk), a2D)
-        call accum_hist_field(n_Cdn_atm_skin, &
-                              iblk, Cdn_atm_skin(:,:,iblk), a2D)
-        call accum_hist_field(n_Cdn_atm_ratio, &
-                              iblk, Cdn_atm_ratio(:,:,iblk), a2D)
-        call accum_hist_field(n_Cdn_ocn_keel, &
-                              iblk, Cdn_ocn_keel(:,:,iblk), a2D)
-        call accum_hist_field(n_Cdn_ocn_floe, &
-                              iblk, Cdn_ocn_floe(:,:,iblk), a2D)
-        call accum_hist_field(n_Cdn_ocn_skin, &
-                              iblk, Cdn_ocn_skin(:,:,iblk), a2D)
+      if (f_drag        (1:1) /= 'x') then
+        call accum_hist_field(n_hfreebd      , iblk, hfreebd      (:,:,iblk), a2D)
+        call accum_hist_field(n_hdraft       , iblk, hdraft       (:,:,iblk), a2D)
+        call accum_hist_field(n_hridge       , iblk, hridge       (:,:,iblk), a2D)
+        call accum_hist_field(n_distrdg      , iblk, distrdg      (:,:,iblk), a2D)
+        call accum_hist_field(n_hkeel        , iblk, hkeel        (:,:,iblk), a2D)
+        call accum_hist_field(n_dkeel        , iblk, dkeel        (:,:,iblk), a2D)
+        call accum_hist_field(n_lfloe        , iblk, lfloe        (:,:,iblk), a2D)
+        call accum_hist_field(n_dfloe        , iblk, dfloe        (:,:,iblk), a2D)
+        call accum_hist_field(n_Cdn_atm_rdg  , iblk, Cdn_atm_rdg  (:,:,iblk), a2D)
+        call accum_hist_field(n_Cdn_atm_floe , iblk, Cdn_atm_floe (:,:,iblk), a2D)
+        call accum_hist_field(n_Cdn_atm_pond , iblk, Cdn_atm_pond (:,:,iblk), a2D)
+        call accum_hist_field(n_Cdn_atm_skin , iblk, Cdn_atm_skin (:,:,iblk), a2D)
+        call accum_hist_field(n_Cdn_atm_ratio, iblk, Cdn_atm_ratio(:,:,iblk), a2D)
+        call accum_hist_field(n_Cdn_ocn_keel , iblk, Cdn_ocn_keel (:,:,iblk), a2D)
+        call accum_hist_field(n_Cdn_ocn_floe , iblk, Cdn_ocn_floe (:,:,iblk), a2D)
+        call accum_hist_field(n_Cdn_ocn_skin , iblk, Cdn_ocn_skin (:,:,iblk), a2D)
       end if
 
       endif ! if(allocated(a2D))
