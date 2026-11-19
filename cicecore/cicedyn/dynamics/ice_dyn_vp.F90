@@ -1361,8 +1361,7 @@
       real (kind=dbl_kind) :: &
         divune, divunw, divuse, divusw            , & ! divergence
         tensionne, tensionnw, tensionse, tensionsw, & ! tension
-        shearne, shearnw, shearse, shearsw        , & ! shearing
-        Deltane, Deltanw, Deltase, Deltasw            ! Delta
+        shearne, shearnw, shearse, shearsw            ! shearing
 
       character(len=*), parameter :: subname = '(stress_vp)'
 
@@ -1374,20 +1373,19 @@
       ! strain rates
       ! NOTE these are actually strain rates * area  (m^2/s)
       !-----------------------------------------------------------------
-         call strain_rates (nx_block , ny_block , &
-                            i        , j        , &
-                            uvel     , vvel     , &
-                            dxT      , dyT      , &
-                            cxp      , cyp      , &
-                            cxm      , cym      , &
-                            divune   , divunw   , &
-                            divuse   , divusw   , &
-                            tensionne, tensionnw, &
-                            tensionse, tensionsw, &
-                            shearne  , shearnw  , &
-                            shearse  , shearsw  , &
-                            Deltane  , Deltanw  , &
-                            Deltase  , Deltasw     )
+         call strain_rates_scalar (uvel(i  ,j  ), uvel(i-1,j  ), &
+                                   uvel(i  ,j-1), uvel(i-1,j-1), &
+                                   vvel(i  ,j  ), vvel(i-1,j  ), &
+                                   vvel(i  ,j-1), vvel(i-1,j-1), &
+                                   dxT (i  ,j  ), dyT (i  ,j  ), &
+                                   cxp (i  ,j  ), cyp (i  ,j  ), &
+                                   cxm (i  ,j  ), cym (i  ,j  ), &
+                                   divune       , divunw       , &
+                                   divuse       , divusw       , &
+                                   tensionne    , tensionnw    , &
+                                   tensionse    , tensionsw    , &
+                                   shearne      , shearnw      , &
+                                   shearse      , shearsw          )
 
       !-----------------------------------------------------------------
       ! the stresses                            ! kg/s^2
@@ -1600,7 +1598,6 @@
         divune, divunw, divuse, divusw            , & ! divergence
         tensionne, tensionnw, tensionse, tensionsw, & ! tension
         shearne, shearnw, shearse, shearsw        , & ! shearing
-        Deltane, Deltanw, Deltase, Deltasw        , & ! Delt
         ssigpn, ssigps, ssigpe, ssigpw            , &
         ssigmn, ssigms, ssigme, ssigmw            , &
         ssig12n, ssig12s, ssig12e, ssig12w        , &
@@ -1632,20 +1629,19 @@
       ! strain rates
       ! NOTE these are actually strain rates * area  (m^2/s)
       !-----------------------------------------------------------------
-         call strain_rates (nx_block , ny_block , &
-                            i        , j        , &
-                            uvel     , vvel     , &
-                            dxT      , dyT      , &
-                            cxp      , cyp      , &
-                            cxm      , cym      , &
-                            divune   , divunw   , &
-                            divuse   , divusw   , &
-                            tensionne, tensionnw, &
-                            tensionse, tensionsw, &
-                            shearne  , shearnw  , &
-                            shearse  , shearsw  , &
-                            Deltane  , Deltanw  , &
-                            Deltase  , Deltasw     )
+         call strain_rates_scalar (uvel(i  ,j  ), uvel(i-1,j  ), &
+                                   uvel(i  ,j-1), uvel(i-1,j-1), &
+                                   vvel(i  ,j  ), vvel(i-1,j  ), &
+                                   vvel(i  ,j-1), vvel(i-1,j-1), &
+                                   dxT (i  ,j  ), dyT (i  ,j  ), &
+                                   cxp (i  ,j  ), cyp (i  ,j  ), &
+                                   cxm (i  ,j  ), cym (i  ,j  ), &
+                                   divune       , divunw       , &
+                                   divuse       , divusw       , &
+                                   tensionne    , tensionnw    , &
+                                   tensionse    , tensionsw    , &
+                                   shearne      , shearnw      , &
+                                   shearse      , shearsw          )
 
       !-----------------------------------------------------------------
       ! the stresses                            ! kg/s^2
