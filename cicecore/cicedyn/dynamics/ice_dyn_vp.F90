@@ -2091,17 +2091,17 @@
 
             stressp_1 = zetax2(i,j,1)*divune
             stressp_2 = zetax2(i,j,2)*divunw
-            stressp_3 = zetax2(i,j,3)*divusw
-            stressp_4 = zetax2(i,j,4)*divuse
+            stressp_3  = c0
+            stressp_4  = c0
 
             stressm_1 = etax2(i,j,1)*tensionne
             stressm_2 = etax2(i,j,2)*tensionnw
-            stressm_3 = etax2(i,j,3)*tensionsw
-            stressm_4 = etax2(i,j,4)*tensionse
+            stressm_3  = c0
+            stressm_4  = c0
 
             stress12_1 = etax2(i,j,1)*shearne*p5
-            stress12_2 = etax2(i,j,2)*shearnw*p5
-            stress12_3 = etax2(i,j,3)*shearsw*p5
+            stress12_2 = c0
+            stress12_3 = c0
             stress12_4 = etax2(i,j,4)*shearse*p5
 
          !-----------------------------------------------------------------
@@ -2109,47 +2109,43 @@
          !-----------------------------------------------------------------
 
             ssigpn  = stressp_1 + stressp_2
-            ssigps  = stressp_3 + stressp_4
-            ssigpe  = stressp_1 + stressp_4
-            ssigpw  = stressp_2 + stressp_3
-            ssigp1  =(stressp_1 + stressp_3)*p055
-            ssigp2  =(stressp_2 + stressp_4)*p055
+            ssigps     = c0
+            ssigpe     = stressp_1
+            ssigpw     = stressp_2
+            ssigp1     = (stressp_1)*p055
+            ssigp2     = (stressp_2)*p055
 
             ssigmn  = stressm_1 + stressm_2
-            ssigms  = stressm_3 + stressm_4
-            ssigme  = stressm_1 + stressm_4
-            ssigmw  = stressm_2 + stressm_3
-            ssigm1  =(stressm_1 + stressm_3)*p055
-            ssigm2  =(stressm_2 + stressm_4)*p055
+            ssigms     = c0
+            ssigme     = stressm_1
+            ssigmw     = stressm_2
+            ssigm1     = (stressm_1)*p055
+            ssigm2     = (stressm_2)*p055
 
-            ssig12n = stress12_1 + stress12_2
-            ssig12s = stress12_3 + stress12_4
+            ssig12n    = stress12_1
+            ssig12s    = stress12_4
             ssig12e = stress12_1 + stress12_4
-            ssig12w = stress12_2 + stress12_3
-            ssig121 =(stress12_1 + stress12_3)*p111
-            ssig122 =(stress12_2 + stress12_4)*p111
+            ssig12w    = c0
+            ssig121    = (stress12_1)*p111
+            ssig122    = (stress12_4)*p111
 
-            csigpne = p111*stressp_1 + ssigp2 + p027*stressp_3
-            csigpnw = p111*stressp_2 + ssigp1 + p027*stressp_4
-            csigpsw = p111*stressp_3 + ssigp2 + p027*stressp_1
-            csigpse = p111*stressp_4 + ssigp1 + p027*stressp_2
+            csigpne    = p111*stressp_1 + ssigp2
+            csigpnw    = p111*stressp_2 + ssigp1
+            csigpsw    = ssigp2 + p027*stressp_1
+            csigpse    = ssigp1 + p027*stressp_2
 
-            csigmne = p111*stressm_1 + ssigm2 + p027*stressm_3
-            csigmnw = p111*stressm_2 + ssigm1 + p027*stressm_4
-            csigmsw = p111*stressm_3 + ssigm2 + p027*stressm_1
-            csigmse = p111*stressm_4 + ssigm1 + p027*stressm_2
+            csigmne    = p111*stressm_1 + ssigm2
+            csigmnw    = p111*stressm_2 + ssigm1
+            csigmsw    = ssigm2 + p027*stressm_1
+            csigmse    = ssigm1 + p027*stressm_2
 
-            csig12ne = p222*stress12_1 + ssig122 &
-                     + p055*stress12_3
-            csig12nw = p222*stress12_2 + ssig121 &
-                     + p055*stress12_4
-            csig12sw = p222*stress12_3 + ssig122 &
-                     + p055*stress12_1
-            csig12se = p222*stress12_4 + ssig121 &
-                     + p055*stress12_2
+            csig12ne   = p222*stress12_1 + ssig122
+            csig12nw   = ssig121 + p055*stress12_4
+            csig12sw   = ssig122 + p055*stress12_1
+            csig12se   = p222*stress12_4 + ssig121
 
-            str12ew = p5*dxT(i,j)*(p333*ssig12e + p166*ssig12w)
-            str12we = p5*dxT(i,j)*(p333*ssig12w + p166*ssig12e)
+            str12ew    = p5*dxT(i,j)*(p333*ssig12e)
+            str12we    = p5*dxT(i,j)*(p166*ssig12e)
             str12ns = p5*dyT(i,j)*(p333*ssig12n + p166*ssig12s)
             str12sn = p5*dyT(i,j)*(p333*ssig12s + p166*ssig12n)
 
@@ -2158,8 +2154,8 @@
          !-----------------------------------------------------------------
 
 
-               strp_tmp  = p25*dyT(i,j)*(p333*ssigpn  + p166*ssigps)
-               strm_tmp  = p25*dyT(i,j)*(p333*ssigmn  + p166*ssigms)
+               strp_tmp   = p25*dyT(i,j)*(p333*ssigpn)
+               strm_tmp   = p25*dyT(i,j)*(p333*ssigmn)
 
                ! northeast (i,j)
                Drheo(iu,ju,1) = -strp_tmp - strm_tmp - str12ew &
@@ -2204,65 +2200,61 @@
 
             stressp_1 = zetax2(i,j,1)*divune
             stressp_2 = zetax2(i,j,2)*divunw
-            stressp_3 = zetax2(i,j,3)*divusw
-            stressp_4 = zetax2(i,j,4)*divuse
+            stressp_3  = c0
+            stressp_4  = c0
 
             stressm_1 = etax2(i,j,1)*tensionne
             stressm_2 = etax2(i,j,2)*tensionnw
-            stressm_3 = etax2(i,j,3)*tensionsw
-            stressm_4 = etax2(i,j,4)*tensionse
+            stressm_3  = c0
+            stressm_4  = c0
 
-            stress12_1 = etax2(i,j,1)*shearne*p5
+            stress12_1 = c0
             stress12_2 = etax2(i,j,2)*shearnw*p5
             stress12_3 = etax2(i,j,3)*shearsw*p5
-            stress12_4 = etax2(i,j,4)*shearse*p5
+            stress12_4 = c0
 
          !-----------------------------------------------------------------
          ! combinations of the stresses for the momentum equation ! kg/s^2
          !-----------------------------------------------------------------
 
             ssigpn  = stressp_1 + stressp_2
-            ssigps  = stressp_3 + stressp_4
-            ssigpe  = stressp_1 + stressp_4
-            ssigpw  = stressp_2 + stressp_3
-            ssigp1  =(stressp_1 + stressp_3)*p055
-            ssigp2  =(stressp_2 + stressp_4)*p055
+            ssigps     = c0
+            ssigpe     = stressp_1
+            ssigpw     = stressp_2
+            ssigp1     = (stressp_1)*p055
+            ssigp2     = (stressp_2)*p055
 
             ssigmn  = stressm_1 + stressm_2
-            ssigms  = stressm_3 + stressm_4
-            ssigme  = stressm_1 + stressm_4
-            ssigmw  = stressm_2 + stressm_3
-            ssigm1  =(stressm_1 + stressm_3)*p055
-            ssigm2  =(stressm_2 + stressm_4)*p055
+            ssigms     = c0
+            ssigme     = stressm_1
+            ssigmw     = stressm_2
+            ssigm1     = (stressm_1)*p055
+            ssigm2     = (stressm_2)*p055
 
-            ssig12n = stress12_1 + stress12_2
-            ssig12s = stress12_3 + stress12_4
-            ssig12e = stress12_1 + stress12_4
+            ssig12n    = stress12_2
+            ssig12s    = stress12_3
+            ssig12e    = c0
             ssig12w = stress12_2 + stress12_3
-            ssig121 =(stress12_1 + stress12_3)*p111
-            ssig122 =(stress12_2 + stress12_4)*p111
+            ssig121    = (stress12_3)*p111
+            ssig122    = (stress12_2)*p111
 
-            csigpne = p111*stressp_1 + ssigp2 + p027*stressp_3
-            csigpnw = p111*stressp_2 + ssigp1 + p027*stressp_4
-            csigpsw = p111*stressp_3 + ssigp2 + p027*stressp_1
-            csigpse = p111*stressp_4 + ssigp1 + p027*stressp_2
+            csigpne    = p111*stressp_1 + ssigp2
+            csigpnw    = p111*stressp_2 + ssigp1
+            csigpsw    = ssigp2 + p027*stressp_1
+            csigpse    = ssigp1 + p027*stressp_2
 
-            csigmne = p111*stressm_1 + ssigm2 + p027*stressm_3
-            csigmnw = p111*stressm_2 + ssigm1 + p027*stressm_4
-            csigmsw = p111*stressm_3 + ssigm2 + p027*stressm_1
-            csigmse = p111*stressm_4 + ssigm1 + p027*stressm_2
+            csigmne    = p111*stressm_1 + ssigm2
+            csigmnw    = p111*stressm_2 + ssigm1
+            csigmsw    = ssigm2 + p027*stressm_1
+            csigmse    = ssigm1 + p027*stressm_2
 
-            csig12ne = p222*stress12_1 + ssig122 &
-                     + p055*stress12_3
-            csig12nw = p222*stress12_2 + ssig121 &
-                     + p055*stress12_4
-            csig12sw = p222*stress12_3 + ssig122 &
-                     + p055*stress12_1
-            csig12se = p222*stress12_4 + ssig121 &
-                     + p055*stress12_2
+            csig12ne   = ssig122 + p055*stress12_3
+            csig12nw   = p222*stress12_2 + ssig121
+            csig12sw   = p222*stress12_3 + ssig122
+            csig12se   = ssig121 + p055*stress12_2
 
-            str12ew = p5*dxT(i,j)*(p333*ssig12e + p166*ssig12w)
-            str12we = p5*dxT(i,j)*(p333*ssig12w + p166*ssig12e)
+            str12ew    = p5*dxT(i,j)*(p166*ssig12w)
+            str12we    = p5*dxT(i,j)*(p333*ssig12w)
             str12ns = p5*dyT(i,j)*(p333*ssig12n + p166*ssig12s)
             str12sn = p5*dyT(i,j)*(p333*ssig12s + p166*ssig12n)
 
@@ -2271,8 +2263,8 @@
          !-----------------------------------------------------------------
 
 
-               strp_tmp  = p25*dyT(i,j)*(p333*ssigpn  + p166*ssigps)
-               strm_tmp  = p25*dyT(i,j)*(p333*ssigmn  + p166*ssigms)
+               strp_tmp   = p25*dyT(i,j)*(p333*ssigpn)
+               strm_tmp   = p25*dyT(i,j)*(p333*ssigmn)
 
                ! northwest (i+1,j)
                Drheo(iu,ju,2) = strp_tmp + strm_tmp - str12we &
@@ -2315,67 +2307,63 @@
          ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
          !-----------------------------------------------------------------
 
-            stressp_1 = zetax2(i,j,1)*divune
-            stressp_2 = zetax2(i,j,2)*divunw
+            stressp_1  = c0
+            stressp_2  = c0
             stressp_3 = zetax2(i,j,3)*divusw
             stressp_4 = zetax2(i,j,4)*divuse
 
-            stressm_1 = etax2(i,j,1)*tensionne
-            stressm_2 = etax2(i,j,2)*tensionnw
+            stressm_1  = c0
+            stressm_2  = c0
             stressm_3 = etax2(i,j,3)*tensionsw
             stressm_4 = etax2(i,j,4)*tensionse
 
             stress12_1 = etax2(i,j,1)*shearne*p5
-            stress12_2 = etax2(i,j,2)*shearnw*p5
-            stress12_3 = etax2(i,j,3)*shearsw*p5
+            stress12_2 = c0
+            stress12_3 = c0
             stress12_4 = etax2(i,j,4)*shearse*p5
 
          !-----------------------------------------------------------------
          ! combinations of the stresses for the momentum equation ! kg/s^2
          !-----------------------------------------------------------------
 
-            ssigpn  = stressp_1 + stressp_2
+            ssigpn     = c0
             ssigps  = stressp_3 + stressp_4
-            ssigpe  = stressp_1 + stressp_4
-            ssigpw  = stressp_2 + stressp_3
-            ssigp1  =(stressp_1 + stressp_3)*p055
-            ssigp2  =(stressp_2 + stressp_4)*p055
+            ssigpe     = stressp_4
+            ssigpw     = stressp_3
+            ssigp1     = (stressp_3)*p055
+            ssigp2     = (stressp_4)*p055
 
-            ssigmn  = stressm_1 + stressm_2
+            ssigmn     = c0
             ssigms  = stressm_3 + stressm_4
-            ssigme  = stressm_1 + stressm_4
-            ssigmw  = stressm_2 + stressm_3
-            ssigm1  =(stressm_1 + stressm_3)*p055
-            ssigm2  =(stressm_2 + stressm_4)*p055
+            ssigme     = stressm_4
+            ssigmw     = stressm_3
+            ssigm1     = (stressm_3)*p055
+            ssigm2     = (stressm_4)*p055
 
-            ssig12n = stress12_1 + stress12_2
-            ssig12s = stress12_3 + stress12_4
+            ssig12n    = stress12_1
+            ssig12s    = stress12_4
             ssig12e = stress12_1 + stress12_4
-            ssig12w = stress12_2 + stress12_3
-            ssig121 =(stress12_1 + stress12_3)*p111
-            ssig122 =(stress12_2 + stress12_4)*p111
+            ssig12w    = c0
+            ssig121    = (stress12_1)*p111
+            ssig122    = (stress12_4)*p111
 
-            csigpne = p111*stressp_1 + ssigp2 + p027*stressp_3
-            csigpnw = p111*stressp_2 + ssigp1 + p027*stressp_4
-            csigpsw = p111*stressp_3 + ssigp2 + p027*stressp_1
-            csigpse = p111*stressp_4 + ssigp1 + p027*stressp_2
+            csigpne    = ssigp2 + p027*stressp_3
+            csigpnw    = ssigp1 + p027*stressp_4
+            csigpsw    = p111*stressp_3 + ssigp2
+            csigpse    = p111*stressp_4 + ssigp1
 
-            csigmne = p111*stressm_1 + ssigm2 + p027*stressm_3
-            csigmnw = p111*stressm_2 + ssigm1 + p027*stressm_4
-            csigmsw = p111*stressm_3 + ssigm2 + p027*stressm_1
-            csigmse = p111*stressm_4 + ssigm1 + p027*stressm_2
+            csigmne    = ssigm2 + p027*stressm_3
+            csigmnw    = ssigm1 + p027*stressm_4
+            csigmsw    = p111*stressm_3 + ssigm2
+            csigmse    = p111*stressm_4 + ssigm1
 
-            csig12ne = p222*stress12_1 + ssig122 &
-                     + p055*stress12_3
-            csig12nw = p222*stress12_2 + ssig121 &
-                     + p055*stress12_4
-            csig12sw = p222*stress12_3 + ssig122 &
-                     + p055*stress12_1
-            csig12se = p222*stress12_4 + ssig121 &
-                     + p055*stress12_2
+            csig12ne   = p222*stress12_1 + ssig122
+            csig12nw   = ssig121 + p055*stress12_4
+            csig12sw   = ssig122 + p055*stress12_1
+            csig12se   = p222*stress12_4 + ssig121
 
-            str12ew = p5*dxT(i,j)*(p333*ssig12e + p166*ssig12w)
-            str12we = p5*dxT(i,j)*(p333*ssig12w + p166*ssig12e)
+            str12ew    = p5*dxT(i,j)*(p333*ssig12e)
+            str12we    = p5*dxT(i,j)*(p166*ssig12e)
             str12ns = p5*dyT(i,j)*(p333*ssig12n + p166*ssig12s)
             str12sn = p5*dyT(i,j)*(p333*ssig12s + p166*ssig12n)
 
@@ -2384,8 +2372,8 @@
          !-----------------------------------------------------------------
 
 
-               strp_tmp  = p25*dyT(i,j)*(p333*ssigps  + p166*ssigpn)
-               strm_tmp  = p25*dyT(i,j)*(p333*ssigms  + p166*ssigmn)
+               strp_tmp   = p25*dyT(i,j)*(p333*ssigps)
+               strm_tmp   = p25*dyT(i,j)*(p333*ssigms)
 
                ! southeast (i,j+1)
                Drheo(iu,ju,3) = -strp_tmp - strm_tmp + str12ew &
@@ -2428,67 +2416,63 @@
          ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
          !-----------------------------------------------------------------
 
-            stressp_1 = zetax2(i,j,1)*divune
-            stressp_2 = zetax2(i,j,2)*divunw
+            stressp_1  = c0
+            stressp_2  = c0
             stressp_3 = zetax2(i,j,3)*divusw
             stressp_4 = zetax2(i,j,4)*divuse
 
-            stressm_1 = etax2(i,j,1)*tensionne
-            stressm_2 = etax2(i,j,2)*tensionnw
+            stressm_1  = c0
+            stressm_2  = c0
             stressm_3 = etax2(i,j,3)*tensionsw
             stressm_4 = etax2(i,j,4)*tensionse
 
-            stress12_1 = etax2(i,j,1)*shearne*p5
+            stress12_1 = c0
             stress12_2 = etax2(i,j,2)*shearnw*p5
             stress12_3 = etax2(i,j,3)*shearsw*p5
-            stress12_4 = etax2(i,j,4)*shearse*p5
+            stress12_4 = c0
 
          !-----------------------------------------------------------------
          ! combinations of the stresses for the momentum equation ! kg/s^2
          !-----------------------------------------------------------------
 
-            ssigpn  = stressp_1 + stressp_2
+            ssigpn     = c0
             ssigps  = stressp_3 + stressp_4
-            ssigpe  = stressp_1 + stressp_4
-            ssigpw  = stressp_2 + stressp_3
-            ssigp1  =(stressp_1 + stressp_3)*p055
-            ssigp2  =(stressp_2 + stressp_4)*p055
+            ssigpe     = stressp_4
+            ssigpw     = stressp_3
+            ssigp1     = (stressp_3)*p055
+            ssigp2     = (stressp_4)*p055
 
-            ssigmn  = stressm_1 + stressm_2
+            ssigmn     = c0
             ssigms  = stressm_3 + stressm_4
-            ssigme  = stressm_1 + stressm_4
-            ssigmw  = stressm_2 + stressm_3
-            ssigm1  =(stressm_1 + stressm_3)*p055
-            ssigm2  =(stressm_2 + stressm_4)*p055
+            ssigme     = stressm_4
+            ssigmw     = stressm_3
+            ssigm1     = (stressm_3)*p055
+            ssigm2     = (stressm_4)*p055
 
-            ssig12n = stress12_1 + stress12_2
-            ssig12s = stress12_3 + stress12_4
-            ssig12e = stress12_1 + stress12_4
+            ssig12n    = stress12_2
+            ssig12s    = stress12_3
+            ssig12e    = c0
             ssig12w = stress12_2 + stress12_3
-            ssig121 =(stress12_1 + stress12_3)*p111
-            ssig122 =(stress12_2 + stress12_4)*p111
+            ssig121    = (stress12_3)*p111
+            ssig122    = (stress12_2)*p111
 
-            csigpne = p111*stressp_1 + ssigp2 + p027*stressp_3
-            csigpnw = p111*stressp_2 + ssigp1 + p027*stressp_4
-            csigpsw = p111*stressp_3 + ssigp2 + p027*stressp_1
-            csigpse = p111*stressp_4 + ssigp1 + p027*stressp_2
+            csigpne    = ssigp2 + p027*stressp_3
+            csigpnw    = ssigp1 + p027*stressp_4
+            csigpsw    = p111*stressp_3 + ssigp2
+            csigpse    = p111*stressp_4 + ssigp1
 
-            csigmne = p111*stressm_1 + ssigm2 + p027*stressm_3
-            csigmnw = p111*stressm_2 + ssigm1 + p027*stressm_4
-            csigmsw = p111*stressm_3 + ssigm2 + p027*stressm_1
-            csigmse = p111*stressm_4 + ssigm1 + p027*stressm_2
+            csigmne    = ssigm2 + p027*stressm_3
+            csigmnw    = ssigm1 + p027*stressm_4
+            csigmsw    = p111*stressm_3 + ssigm2
+            csigmse    = p111*stressm_4 + ssigm1
 
-            csig12ne = p222*stress12_1 + ssig122 &
-                     + p055*stress12_3
-            csig12nw = p222*stress12_2 + ssig121 &
-                     + p055*stress12_4
-            csig12sw = p222*stress12_3 + ssig122 &
-                     + p055*stress12_1
-            csig12se = p222*stress12_4 + ssig121 &
-                     + p055*stress12_2
+            csig12ne   = ssig122 + p055*stress12_3
+            csig12nw   = p222*stress12_2 + ssig121
+            csig12sw   = p222*stress12_3 + ssig122
+            csig12se   = ssig121 + p055*stress12_2
 
-            str12ew = p5*dxT(i,j)*(p333*ssig12e + p166*ssig12w)
-            str12we = p5*dxT(i,j)*(p333*ssig12w + p166*ssig12e)
+            str12ew    = p5*dxT(i,j)*(p166*ssig12w)
+            str12we    = p5*dxT(i,j)*(p333*ssig12w)
             str12ns = p5*dyT(i,j)*(p333*ssig12n + p166*ssig12s)
             str12sn = p5*dyT(i,j)*(p333*ssig12s + p166*ssig12n)
 
@@ -2497,8 +2481,8 @@
          !-----------------------------------------------------------------
 
 
-               strp_tmp  = p25*dyT(i,j)*(p333*ssigps  + p166*ssigpn)
-               strm_tmp  = p25*dyT(i,j)*(p333*ssigms  + p166*ssigmn)
+               strp_tmp   = p25*dyT(i,j)*(p333*ssigps)
+               strm_tmp   = p25*dyT(i,j)*(p333*ssigms)
 
                ! southwest (i+1,j+1)
                Drheo(iu,ju,4) = strp_tmp + strm_tmp + str12we &
@@ -2546,76 +2530,72 @@
          !-----------------------------------------------------------------
 
             stressp_1 = zetax2(i,j,1)*divune
-            stressp_2 = zetax2(i,j,2)*divunw
-            stressp_3 = zetax2(i,j,3)*divusw
+            stressp_2  = c0
+            stressp_3  = c0
             stressp_4 = zetax2(i,j,4)*divuse
 
             stressm_1 = etax2(i,j,1)*tensionne
-            stressm_2 = etax2(i,j,2)*tensionnw
-            stressm_3 = etax2(i,j,3)*tensionsw
+            stressm_2  = c0
+            stressm_3  = c0
             stressm_4 = etax2(i,j,4)*tensionse
 
             stress12_1 = etax2(i,j,1)*shearne*p5
             stress12_2 = etax2(i,j,2)*shearnw*p5
-            stress12_3 = etax2(i,j,3)*shearsw*p5
-            stress12_4 = etax2(i,j,4)*shearse*p5
+            stress12_3 = c0
+            stress12_4 = c0
 
          !-----------------------------------------------------------------
          ! combinations of the stresses for the momentum equation ! kg/s^2
          !-----------------------------------------------------------------
 
-            ssigpn  = stressp_1 + stressp_2
-            ssigps  = stressp_3 + stressp_4
+            ssigpn     = stressp_1
+            ssigps     = stressp_4
             ssigpe  = stressp_1 + stressp_4
-            ssigpw  = stressp_2 + stressp_3
-            ssigp1  =(stressp_1 + stressp_3)*p055
-            ssigp2  =(stressp_2 + stressp_4)*p055
+            ssigpw     = c0
+            ssigp1     = (stressp_1)*p055
+            ssigp2     = (stressp_4)*p055
 
-            ssigmn  = stressm_1 + stressm_2
-            ssigms  = stressm_3 + stressm_4
+            ssigmn     = stressm_1
+            ssigms     = stressm_4
             ssigme  = stressm_1 + stressm_4
-            ssigmw  = stressm_2 + stressm_3
-            ssigm1  =(stressm_1 + stressm_3)*p055
-            ssigm2  =(stressm_2 + stressm_4)*p055
+            ssigmw     = c0
+            ssigm1     = (stressm_1)*p055
+            ssigm2     = (stressm_4)*p055
 
             ssig12n = stress12_1 + stress12_2
-            ssig12s = stress12_3 + stress12_4
-            ssig12e = stress12_1 + stress12_4
-            ssig12w = stress12_2 + stress12_3
-            ssig121 =(stress12_1 + stress12_3)*p111
-            ssig122 =(stress12_2 + stress12_4)*p111
+            ssig12s    = c0
+            ssig12e    = stress12_1
+            ssig12w    = stress12_2
+            ssig121    = (stress12_1)*p111
+            ssig122    = (stress12_2)*p111
 
-            csigpne = p111*stressp_1 + ssigp2 + p027*stressp_3
-            csigpnw = p111*stressp_2 + ssigp1 + p027*stressp_4
-            csigpsw = p111*stressp_3 + ssigp2 + p027*stressp_1
-            csigpse = p111*stressp_4 + ssigp1 + p027*stressp_2
+            csigpne    = p111*stressp_1 + ssigp2
+            csigpnw    = ssigp1 + p027*stressp_4
+            csigpsw    = ssigp2 + p027*stressp_1
+            csigpse    = p111*stressp_4 + ssigp1
 
-            csigmne = p111*stressm_1 + ssigm2 + p027*stressm_3
-            csigmnw = p111*stressm_2 + ssigm1 + p027*stressm_4
-            csigmsw = p111*stressm_3 + ssigm2 + p027*stressm_1
-            csigmse = p111*stressm_4 + ssigm1 + p027*stressm_2
+            csigmne    = p111*stressm_1 + ssigm2
+            csigmnw    = ssigm1 + p027*stressm_4
+            csigmsw    = ssigm2 + p027*stressm_1
+            csigmse    = p111*stressm_4 + ssigm1
 
-            csig12ne = p222*stress12_1 + ssig122 &
-                     + p055*stress12_3
-            csig12nw = p222*stress12_2 + ssig121 &
-                     + p055*stress12_4
-            csig12sw = p222*stress12_3 + ssig122 &
-                     + p055*stress12_1
-            csig12se = p222*stress12_4 + ssig121 &
-                     + p055*stress12_2
+            csig12ne   = p222*stress12_1 + ssig122
+            csig12nw   = p222*stress12_2 + ssig121
+            csig12sw   = ssig122 + p055*stress12_1
+            csig12se   = ssig121 + p055*stress12_2
 
             str12ew = p5*dxT(i,j)*(p333*ssig12e + p166*ssig12w)
             str12we = p5*dxT(i,j)*(p333*ssig12w + p166*ssig12e)
-            str12ns = p5*dyT(i,j)*(p333*ssig12n + p166*ssig12s)
-            str12sn = p5*dyT(i,j)*(p333*ssig12s + p166*ssig12n)
+            str12ns    = p5*dyT(i,j)*(p333*ssig12n)
+            str12sn    = p5*dyT(i,j)*(p166*ssig12n)
 
          !-----------------------------------------------------------------
          ! for dF/dx (u momentum)
          !-----------------------------------------------------------------
 
 
-               strp_tmp  = p25*dxT(i,j)*(p333*ssigpe  + p166*ssigpw)
-               strm_tmp  = p25*dxT(i,j)*(p333*ssigme  + p166*ssigmw)
+               strp_tmp   = p25*dxT(i,j)*(p333*ssigpe)
+               strm_tmp   = p25*dxT(i,j)*(p333*ssigme)
 
                ! northeast (i,j)
                Drheo(iu,ju,5) = -strp_tmp + strm_tmp - str12ns &
@@ -2659,17 +2639,17 @@
          !-----------------------------------------------------------------
 
             stressp_1 = zetax2(i,j,1)*divune
-            stressp_2 = zetax2(i,j,2)*divunw
-            stressp_3 = zetax2(i,j,3)*divusw
+            stressp_2  = c0
+            stressp_3  = c0
             stressp_4 = zetax2(i,j,4)*divuse
 
             stressm_1 = etax2(i,j,1)*tensionne
-            stressm_2 = etax2(i,j,2)*tensionnw
-            stressm_3 = etax2(i,j,3)*tensionsw
+            stressm_2  = c0
+            stressm_3  = c0
             stressm_4 = etax2(i,j,4)*tensionse
 
-            stress12_1 = etax2(i,j,1)*shearne*p5
-            stress12_2 = etax2(i,j,2)*shearnw*p5
+            stress12_1 = c0
+            stress12_2 = c0
             stress12_3 = etax2(i,j,3)*shearsw*p5
             stress12_4 = etax2(i,j,4)*shearse*p5
 
@@ -2677,58 +2657,54 @@
          ! combinations of the stresses for the momentum equation ! kg/s^2
          !-----------------------------------------------------------------
 
-            ssigpn  = stressp_1 + stressp_2
-            ssigps  = stressp_3 + stressp_4
+            ssigpn     = stressp_1
+            ssigps     = stressp_4
             ssigpe  = stressp_1 + stressp_4
-            ssigpw  = stressp_2 + stressp_3
-            ssigp1  =(stressp_1 + stressp_3)*p055
-            ssigp2  =(stressp_2 + stressp_4)*p055
+            ssigpw     = c0
+            ssigp1     = (stressp_1)*p055
+            ssigp2     = (stressp_4)*p055
 
-            ssigmn  = stressm_1 + stressm_2
-            ssigms  = stressm_3 + stressm_4
+            ssigmn     = stressm_1
+            ssigms     = stressm_4
             ssigme  = stressm_1 + stressm_4
-            ssigmw  = stressm_2 + stressm_3
-            ssigm1  =(stressm_1 + stressm_3)*p055
-            ssigm2  =(stressm_2 + stressm_4)*p055
+            ssigmw     = c0
+            ssigm1     = (stressm_1)*p055
+            ssigm2     = (stressm_4)*p055
 
-            ssig12n = stress12_1 + stress12_2
+            ssig12n    = c0
             ssig12s = stress12_3 + stress12_4
-            ssig12e = stress12_1 + stress12_4
-            ssig12w = stress12_2 + stress12_3
-            ssig121 =(stress12_1 + stress12_3)*p111
-            ssig122 =(stress12_2 + stress12_4)*p111
+            ssig12e    = stress12_4
+            ssig12w    = stress12_3
+            ssig121    = (stress12_3)*p111
+            ssig122    = (stress12_4)*p111
 
-            csigpne = p111*stressp_1 + ssigp2 + p027*stressp_3
-            csigpnw = p111*stressp_2 + ssigp1 + p027*stressp_4
-            csigpsw = p111*stressp_3 + ssigp2 + p027*stressp_1
-            csigpse = p111*stressp_4 + ssigp1 + p027*stressp_2
+            csigpne    = p111*stressp_1 + ssigp2
+            csigpnw    = ssigp1 + p027*stressp_4
+            csigpsw    = ssigp2 + p027*stressp_1
+            csigpse    = p111*stressp_4 + ssigp1
 
-            csigmne = p111*stressm_1 + ssigm2 + p027*stressm_3
-            csigmnw = p111*stressm_2 + ssigm1 + p027*stressm_4
-            csigmsw = p111*stressm_3 + ssigm2 + p027*stressm_1
-            csigmse = p111*stressm_4 + ssigm1 + p027*stressm_2
+            csigmne    = p111*stressm_1 + ssigm2
+            csigmnw    = ssigm1 + p027*stressm_4
+            csigmsw    = ssigm2 + p027*stressm_1
+            csigmse    = p111*stressm_4 + ssigm1
 
-            csig12ne = p222*stress12_1 + ssig122 &
-                     + p055*stress12_3
-            csig12nw = p222*stress12_2 + ssig121 &
-                     + p055*stress12_4
-            csig12sw = p222*stress12_3 + ssig122 &
-                     + p055*stress12_1
-            csig12se = p222*stress12_4 + ssig121 &
-                     + p055*stress12_2
+            csig12ne   = ssig122 + p055*stress12_3
+            csig12nw   = ssig121 + p055*stress12_4
+            csig12sw   = p222*stress12_3 + ssig122
+            csig12se   = p222*stress12_4 + ssig121
 
             str12ew = p5*dxT(i,j)*(p333*ssig12e + p166*ssig12w)
             str12we = p5*dxT(i,j)*(p333*ssig12w + p166*ssig12e)
-            str12ns = p5*dyT(i,j)*(p333*ssig12n + p166*ssig12s)
-            str12sn = p5*dyT(i,j)*(p333*ssig12s + p166*ssig12n)
+            str12ns    = p5*dyT(i,j)*(p166*ssig12s)
+            str12sn    = p5*dyT(i,j)*(p333*ssig12s)
 
          !-----------------------------------------------------------------
          ! for dF/dx (u momentum)
          !-----------------------------------------------------------------
 
 
-               strp_tmp  = p25*dxT(i,j)*(p333*ssigpe  + p166*ssigpw)
-               strm_tmp  = p25*dxT(i,j)*(p333*ssigme  + p166*ssigmw)
+               strp_tmp   = p25*dxT(i,j)*(p333*ssigpe)
+               strm_tmp   = p25*dxT(i,j)*(p333*ssigme)
 
                ! southeast (i,j+1)
                Drheo(iu,ju,6) = strp_tmp - strm_tmp - str12sn &
@@ -2771,77 +2747,73 @@
          ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
          !-----------------------------------------------------------------
 
-            stressp_1 = zetax2(i,j,1)*divune
+            stressp_1  = c0
             stressp_2 = zetax2(i,j,2)*divunw
             stressp_3 = zetax2(i,j,3)*divusw
-            stressp_4 = zetax2(i,j,4)*divuse
+            stressp_4  = c0
 
-            stressm_1 = etax2(i,j,1)*tensionne
+            stressm_1  = c0
             stressm_2 = etax2(i,j,2)*tensionnw
             stressm_3 = etax2(i,j,3)*tensionsw
-            stressm_4 = etax2(i,j,4)*tensionse
+            stressm_4  = c0
 
             stress12_1 = etax2(i,j,1)*shearne*p5
             stress12_2 = etax2(i,j,2)*shearnw*p5
-            stress12_3 = etax2(i,j,3)*shearsw*p5
-            stress12_4 = etax2(i,j,4)*shearse*p5
+            stress12_3 = c0
+            stress12_4 = c0
 
          !-----------------------------------------------------------------
          ! combinations of the stresses for the momentum equation ! kg/s^2
          !-----------------------------------------------------------------
 
-            ssigpn  = stressp_1 + stressp_2
-            ssigps  = stressp_3 + stressp_4
-            ssigpe  = stressp_1 + stressp_4
+            ssigpn     = stressp_2
+            ssigps     = stressp_3
+            ssigpe     = c0
             ssigpw  = stressp_2 + stressp_3
-            ssigp1  =(stressp_1 + stressp_3)*p055
-            ssigp2  =(stressp_2 + stressp_4)*p055
+            ssigp1     = (stressp_3)*p055
+            ssigp2     = (stressp_2)*p055
 
-            ssigmn  = stressm_1 + stressm_2
-            ssigms  = stressm_3 + stressm_4
-            ssigme  = stressm_1 + stressm_4
+            ssigmn     = stressm_2
+            ssigms     = stressm_3
+            ssigme     = c0
             ssigmw  = stressm_2 + stressm_3
-            ssigm1  =(stressm_1 + stressm_3)*p055
-            ssigm2  =(stressm_2 + stressm_4)*p055
+            ssigm1     = (stressm_3)*p055
+            ssigm2     = (stressm_2)*p055
 
             ssig12n = stress12_1 + stress12_2
-            ssig12s = stress12_3 + stress12_4
-            ssig12e = stress12_1 + stress12_4
-            ssig12w = stress12_2 + stress12_3
-            ssig121 =(stress12_1 + stress12_3)*p111
-            ssig122 =(stress12_2 + stress12_4)*p111
+            ssig12s    = c0
+            ssig12e    = stress12_1
+            ssig12w    = stress12_2
+            ssig121    = (stress12_1)*p111
+            ssig122    = (stress12_2)*p111
 
-            csigpne = p111*stressp_1 + ssigp2 + p027*stressp_3
-            csigpnw = p111*stressp_2 + ssigp1 + p027*stressp_4
-            csigpsw = p111*stressp_3 + ssigp2 + p027*stressp_1
-            csigpse = p111*stressp_4 + ssigp1 + p027*stressp_2
+            csigpne    = ssigp2 + p027*stressp_3
+            csigpnw    = p111*stressp_2 + ssigp1
+            csigpsw    = p111*stressp_3 + ssigp2
+            csigpse    = ssigp1 + p027*stressp_2
 
-            csigmne = p111*stressm_1 + ssigm2 + p027*stressm_3
-            csigmnw = p111*stressm_2 + ssigm1 + p027*stressm_4
-            csigmsw = p111*stressm_3 + ssigm2 + p027*stressm_1
-            csigmse = p111*stressm_4 + ssigm1 + p027*stressm_2
+            csigmne    = ssigm2 + p027*stressm_3
+            csigmnw    = p111*stressm_2 + ssigm1
+            csigmsw    = p111*stressm_3 + ssigm2
+            csigmse    = ssigm1 + p027*stressm_2
 
-            csig12ne = p222*stress12_1 + ssig122 &
-                     + p055*stress12_3
-            csig12nw = p222*stress12_2 + ssig121 &
-                     + p055*stress12_4
-            csig12sw = p222*stress12_3 + ssig122 &
-                     + p055*stress12_1
-            csig12se = p222*stress12_4 + ssig121 &
-                     + p055*stress12_2
+            csig12ne   = p222*stress12_1 + ssig122
+            csig12nw   = p222*stress12_2 + ssig121
+            csig12sw   = ssig122 + p055*stress12_1
+            csig12se   = ssig121 + p055*stress12_2
 
             str12ew = p5*dxT(i,j)*(p333*ssig12e + p166*ssig12w)
             str12we = p5*dxT(i,j)*(p333*ssig12w + p166*ssig12e)
-            str12ns = p5*dyT(i,j)*(p333*ssig12n + p166*ssig12s)
-            str12sn = p5*dyT(i,j)*(p333*ssig12s + p166*ssig12n)
+            str12ns    = p5*dyT(i,j)*(p333*ssig12n)
+            str12sn    = p5*dyT(i,j)*(p166*ssig12n)
 
          !-----------------------------------------------------------------
          ! for dF/dx (u momentum)
          !-----------------------------------------------------------------
 
 
-               strp_tmp  = p25*dxT(i,j)*(p333*ssigpw  + p166*ssigpe)
-               strm_tmp  = p25*dxT(i,j)*(p333*ssigmw  + p166*ssigme)
+               strp_tmp   = p25*dxT(i,j)*(p333*ssigpw)
+               strm_tmp   = p25*dxT(i,j)*(p333*ssigmw)
 
                ! northwest (i+1,j)
                Drheo(iu,ju,7) = -strp_tmp + strm_tmp + str12ns &
@@ -2884,18 +2856,18 @@
          ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
          !-----------------------------------------------------------------
 
-            stressp_1 = zetax2(i,j,1)*divune
+            stressp_1  = c0
             stressp_2 = zetax2(i,j,2)*divunw
             stressp_3 = zetax2(i,j,3)*divusw
-            stressp_4 = zetax2(i,j,4)*divuse
+            stressp_4  = c0
 
-            stressm_1 = etax2(i,j,1)*tensionne
+            stressm_1  = c0
             stressm_2 = etax2(i,j,2)*tensionnw
             stressm_3 = etax2(i,j,3)*tensionsw
-            stressm_4 = etax2(i,j,4)*tensionse
+            stressm_4  = c0
 
-            stress12_1 = etax2(i,j,1)*shearne*p5
-            stress12_2 = etax2(i,j,2)*shearnw*p5
+            stress12_1 = c0
+            stress12_2 = c0
             stress12_3 = etax2(i,j,3)*shearsw*p5
             stress12_4 = etax2(i,j,4)*shearse*p5
 
@@ -2903,58 +2875,54 @@
          ! combinations of the stresses for the momentum equation ! kg/s^2
          !-----------------------------------------------------------------
 
-            ssigpn  = stressp_1 + stressp_2
-            ssigps  = stressp_3 + stressp_4
-            ssigpe  = stressp_1 + stressp_4
+            ssigpn     = stressp_2
+            ssigps     = stressp_3
+            ssigpe     = c0
             ssigpw  = stressp_2 + stressp_3
-            ssigp1  =(stressp_1 + stressp_3)*p055
-            ssigp2  =(stressp_2 + stressp_4)*p055
+            ssigp1     = (stressp_3)*p055
+            ssigp2     = (stressp_2)*p055
 
-            ssigmn  = stressm_1 + stressm_2
-            ssigms  = stressm_3 + stressm_4
-            ssigme  = stressm_1 + stressm_4
+            ssigmn     = stressm_2
+            ssigms     = stressm_3
+            ssigme     = c0
             ssigmw  = stressm_2 + stressm_3
-            ssigm1  =(stressm_1 + stressm_3)*p055
-            ssigm2  =(stressm_2 + stressm_4)*p055
+            ssigm1     = (stressm_3)*p055
+            ssigm2     = (stressm_2)*p055
 
-            ssig12n = stress12_1 + stress12_2
+            ssig12n    = c0
             ssig12s = stress12_3 + stress12_4
-            ssig12e = stress12_1 + stress12_4
-            ssig12w = stress12_2 + stress12_3
-            ssig121 =(stress12_1 + stress12_3)*p111
-            ssig122 =(stress12_2 + stress12_4)*p111
+            ssig12e    = stress12_4
+            ssig12w    = stress12_3
+            ssig121    = (stress12_3)*p111
+            ssig122    = (stress12_4)*p111
 
-            csigpne = p111*stressp_1 + ssigp2 + p027*stressp_3
-            csigpnw = p111*stressp_2 + ssigp1 + p027*stressp_4
-            csigpsw = p111*stressp_3 + ssigp2 + p027*stressp_1
-            csigpse = p111*stressp_4 + ssigp1 + p027*stressp_2
+            csigpne    = ssigp2 + p027*stressp_3
+            csigpnw    = p111*stressp_2 + ssigp1
+            csigpsw    = p111*stressp_3 + ssigp2
+            csigpse    = ssigp1 + p027*stressp_2
 
-            csigmne = p111*stressm_1 + ssigm2 + p027*stressm_3
-            csigmnw = p111*stressm_2 + ssigm1 + p027*stressm_4
-            csigmsw = p111*stressm_3 + ssigm2 + p027*stressm_1
-            csigmse = p111*stressm_4 + ssigm1 + p027*stressm_2
+            csigmne    = ssigm2 + p027*stressm_3
+            csigmnw    = p111*stressm_2 + ssigm1
+            csigmsw    = p111*stressm_3 + ssigm2
+            csigmse    = ssigm1 + p027*stressm_2
 
-            csig12ne = p222*stress12_1 + ssig122 &
-                     + p055*stress12_3
-            csig12nw = p222*stress12_2 + ssig121 &
-                     + p055*stress12_4
-            csig12sw = p222*stress12_3 + ssig122 &
-                     + p055*stress12_1
-            csig12se = p222*stress12_4 + ssig121 &
-                     + p055*stress12_2
+            csig12ne   = ssig122 + p055*stress12_3
+            csig12nw   = ssig121 + p055*stress12_4
+            csig12sw   = p222*stress12_3 + ssig122
+            csig12se   = p222*stress12_4 + ssig121
 
             str12ew = p5*dxT(i,j)*(p333*ssig12e + p166*ssig12w)
             str12we = p5*dxT(i,j)*(p333*ssig12w + p166*ssig12e)
-            str12ns = p5*dyT(i,j)*(p333*ssig12n + p166*ssig12s)
-            str12sn = p5*dyT(i,j)*(p333*ssig12s + p166*ssig12n)
+            str12ns    = p5*dyT(i,j)*(p166*ssig12s)
+            str12sn    = p5*dyT(i,j)*(p333*ssig12s)
 
          !-----------------------------------------------------------------
          ! for dF/dx (u momentum)
          !-----------------------------------------------------------------
 
 
-               strp_tmp  = p25*dxT(i,j)*(p333*ssigpw  + p166*ssigpe)
-               strm_tmp  = p25*dxT(i,j)*(p333*ssigmw  + p166*ssigme)
+               strp_tmp   = p25*dxT(i,j)*(p333*ssigpw)
+               strm_tmp   = p25*dxT(i,j)*(p333*ssigmw)
 
                ! southwest (i+1,j+1)
                Drheo(iu,ju,8) = strp_tmp - strm_tmp + str12sn &
