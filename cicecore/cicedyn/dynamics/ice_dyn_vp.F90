@@ -46,6 +46,7 @@
       use ice_domain, only: nblocks, distrb_info
       use ice_domain_size, only: max_blocks
       use ice_dyn_shared, only: dyn_prep1, dyn_prep2, dyn_finish, &
+          strain_rates_scalar, &
           cosw, sinw, fcor_blk, uvel_init, vvel_init, &
           seabed_stress_factor_LKD, seabed_stress_factor_prob, seabed_stress_method, &
           seabed_stress, Ktens, stack_fields,  unstack_fields, fld2, fld3, fld4
@@ -2161,36 +2162,19 @@
          ! strain rates
          ! NOTE these are actually strain rates * area  (m^2/s)
          !-----------------------------------------------------------------
-            ! divergence  =  e_11 + e_22
-            divune    = cyp(i,j)*uij   - dyT(i,j)*ui1j  &
-                      + cxp(i,j)*vij   - dxT(i,j)*vij1
-            divunw    = cym(i,j)*ui1j  + dyT(i,j)*uij   &
-                      + cxp(i,j)*vi1j  - dxT(i,j)*vi1j1
-            divusw    = cym(i,j)*ui1j1 + dyT(i,j)*uij1  &
-                      + cxm(i,j)*vi1j1 + dxT(i,j)*vi1j
-            divuse    = cyp(i,j)*uij1  - dyT(i,j)*ui1j1 &
-                      + cxm(i,j)*vij1  + dxT(i,j)*vij
-
-            ! tension strain rate  =  e_11 - e_22
-            tensionne = -cym(i,j)*uij   - dyT(i,j)*ui1j  &
-                      +  cxm(i,j)*vij   + dxT(i,j)*vij1
-            tensionnw = -cyp(i,j)*ui1j  + dyT(i,j)*uij   &
-                      +  cxm(i,j)*vi1j  + dxT(i,j)*vi1j1
-            tensionsw = -cyp(i,j)*ui1j1 + dyT(i,j)*uij1  &
-                      +  cxp(i,j)*vi1j1 - dxT(i,j)*vi1j
-            tensionse = -cym(i,j)*uij1  - dyT(i,j)*ui1j1 &
-                      +  cxp(i,j)*vij1  - dxT(i,j)*vij
-
-            ! shearing strain rate  =  2*e_12
-            shearne = -cym(i,j)*vij   - dyT(i,j)*vi1j  &
-                    -  cxm(i,j)*uij   - dxT(i,j)*uij1
-            shearnw = -cyp(i,j)*vi1j  + dyT(i,j)*vij   &
-                    -  cxm(i,j)*ui1j  - dxT(i,j)*ui1j1
-            shearsw = -cyp(i,j)*vi1j1 + dyT(i,j)*vij1  &
-                    -  cxp(i,j)*ui1j1 + dxT(i,j)*ui1j
-            shearse = -cym(i,j)*vij1  - dyT(i,j)*vi1j1 &
-                    -  cxp(i,j)*uij1  + dxT(i,j)*uij
-
+            call strain_rates_scalar (uij      , ui1j     ,  &
+                                      uij1     , ui1j1    ,  &
+                                      vij      , vi1j     ,  &
+                                      vij1     , vi1j1    ,  &
+                                      dxT(i,j) , dyT(i,j) ,  &
+                                      cxp(i,j) , cyp(i,j) ,  &
+                                      cxm(i,j) , cym(i,j) ,  &
+                                      divune   , divunw   ,  &
+                                      divuse   , divusw   ,  &
+                                      tensionne, tensionnw,  &
+                                      tensionse, tensionsw,  &
+                                      shearne  , shearnw  ,  &
+                                      shearse  , shearsw     )
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
          ! (1) northeast, (2) northwest, (3) southwest, (4) southeast

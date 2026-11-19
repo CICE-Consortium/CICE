@@ -2134,9 +2134,7 @@
                                       tensionne, tensionnw,  &
                                       tensionse, tensionsw,  &
                                       shearne  , shearnw,    &
-                                      shearse  , shearsw,    &
-                                      Deltane  , Deltanw,    &
-                                      Deltase  , Deltasw     )
+                                      shearse  , shearsw     )
 
       real (kind=dbl_kind), intent(in) :: &
         uvel00, uvelW, uvelS, uvelSW              , & ! x-velocity, this corner's 2x2
@@ -2147,9 +2145,12 @@
       real (kind=dbl_kind), intent(out):: &           ! at each corner :
         divune, divunw, divuse, divusw            , & ! divergence
         tensionne, tensionnw, tensionse, tensionsw, & ! tension
-        shearne, shearnw, shearse, shearsw        , & ! shearing
-        Deltane, Deltanw, Deltase, Deltasw            ! Delta
+        shearne, shearnw, shearse, shearsw            ! shearing
 
+      ! Delta is NOT formed here.  The stress path runs ndte times a step and
+      ! each caller needs a different one (Delta with e_factor, Delta_G with
+      ! epp2i, none at all in formDiag_step1), so it is formed at the use site
+      ! from the intent(out) values above -- as deformations already does.
       character(len=*), parameter :: subname = '(strain_rates_scalar)'
 
       !-----------------------------------------------------------------
@@ -2186,12 +2187,6 @@
               -  cxp*uvelSW + dxT*uvelW
       shearse = -cym*vvelS - dyT*vvelSW &
               -  cxp*uvelS + dxT*uvel00
-
-      ! Delta (in the denominator of zeta, eta)
-      Deltane = sqrt(divune**2 + e_factor*(tensionne**2 + shearne**2))
-      Deltanw = sqrt(divunw**2 + e_factor*(tensionnw**2 + shearnw**2))
-      Deltasw = sqrt(divusw**2 + e_factor*(tensionsw**2 + shearsw**2))
-      Deltase = sqrt(divuse**2 + e_factor*(tensionse**2 + shearse**2))
 
       end subroutine strain_rates_scalar
 
@@ -2253,9 +2248,13 @@
                                 tensionne    , tensionnw    , &
                                 tensionse    , tensionsw    , &
                                 shearne      , shearnw      , &
-                                shearse      , shearsw      , &
-                                Deltane      , Deltanw      , &
-                                Deltase      , Deltasw           )
+                                shearse      , shearsw          )
+
+      ! Delta (in the denominator of zeta, eta)
+      Deltane = sqrt(divune**2 + e_factor*(tensionne**2 + shearne**2))
+      Deltanw = sqrt(divunw**2 + e_factor*(tensionnw**2 + shearnw**2))
+      Deltasw = sqrt(divusw**2 + e_factor*(tensionsw**2 + shearsw**2))
+      Deltase = sqrt(divuse**2 + e_factor*(tensionse**2 + shearse**2))
 
       end subroutine strain_rates
 

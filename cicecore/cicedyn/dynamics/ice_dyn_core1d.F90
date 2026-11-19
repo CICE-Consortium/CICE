@@ -217,9 +217,13 @@ module ice_dyn_core1d
                             tensionne  , tensionnw  , &
                             tensionse  , tensionsw  , &
                             shearne    , shearnw    , &
-                            shearse,    shearsw     , &
-                            Deltane,    Deltanw     , &
-                            Deltase,    Deltasw          )
+                            shearse,    shearsw          )
+
+      ! Delta (in the denominator of zeta, eta)
+      Deltane = sqrt(divune**2 + e_factor*(tensionne**2 + shearne**2))
+      Deltanw = sqrt(divunw**2 + e_factor*(tensionnw**2 + shearnw**2))
+      Deltasw = sqrt(divusw**2 + e_factor*(tensionsw**2 + shearsw**2))
+      Deltase = sqrt(divuse**2 + e_factor*(tensionse**2 + shearse**2))
 
       !--------------------------------------------------------------------------
       ! viscosities and replacement pressure
