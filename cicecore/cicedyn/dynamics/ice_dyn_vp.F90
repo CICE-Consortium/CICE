@@ -2057,8 +2057,7 @@
 
       !-----------------------------------------------------------------
       ! Term 1: u component, T cell i,j.  The velocity is one-hot, written as c1/c0
-      ! literals so the compiler folds the seven zero products and the
-      ! whole stress chain they feed.
+      ! one-hot, so each strain rate is a single metric or exactly zero.
       !-----------------------------------------------------------------
          do ij = 1, icellU
 
@@ -2071,35 +2070,20 @@
          ! strain rates
          ! NOTE these are actually strain rates * area  (m^2/s)
          !-----------------------------------------------------------------
-         ! divergence  =  e_11 + e_22
-         divune    = cyp(i,j)*c1 - dyT(i,j)*c0 &
-                   + cxp(i,j)*c0 - dxT(i,j)*c0
-         divunw    = cym(i,j)*c0 + dyT(i,j)*c1 &
-                   + cxp(i,j)*c0 - dxT(i,j)*c0
-         divusw    = cym(i,j)*c0 + dyT(i,j)*c0 &
-                   + cxm(i,j)*c0 + dxT(i,j)*c0
-         divuse    = cyp(i,j)*c0 - dyT(i,j)*c0 &
-                   + cxm(i,j)*c0 + dxT(i,j)*c0
-   
-         ! tension strain rate  =  e_11 - e_22
-         tensionne = -cym(i,j)*c1 - dyT(i,j)*c0 &
-                   +  cxm(i,j)*c0 + dxT(i,j)*c0
-         tensionnw = -cyp(i,j)*c0 + dyT(i,j)*c1 &
-                   +  cxm(i,j)*c0 + dxT(i,j)*c0
-         tensionsw = -cyp(i,j)*c0 + dyT(i,j)*c0 &
-                   +  cxp(i,j)*c0 - dxT(i,j)*c0
-         tensionse = -cym(i,j)*c0 - dyT(i,j)*c0 &
-                   +  cxp(i,j)*c0 - dxT(i,j)*c0
-   
-         ! shearing strain rate  =  2*e_12
-         shearne = -cym(i,j)*c0 - dyT(i,j)*c0 &
-                 -  cxm(i,j)*c1 - dxT(i,j)*c0
-         shearnw = -cyp(i,j)*c0 + dyT(i,j)*c0 &
-                 -  cxm(i,j)*c0 - dxT(i,j)*c0
-         shearsw = -cyp(i,j)*c0 + dyT(i,j)*c0 &
-                 -  cxp(i,j)*c0 + dxT(i,j)*c0
-         shearse = -cym(i,j)*c0 - dyT(i,j)*c0 &
-                 -  cxp(i,j)*c0 + dxT(i,j)*c1
+            ! strain rates reduce to a single metric or exactly zero,
+            ! because the velocity is one-hot (see the commit message)
+            divune     = cyp(i,j)
+            divunw     = dyT(i,j)
+            divusw     = c0
+            divuse     = c0
+            tensionne  = -cym(i,j)
+            tensionnw  = dyT(i,j)
+            tensionsw  = c0
+            tensionse  = c0
+            shearne    = -cxm(i,j)
+            shearnw    = c0
+            shearsw    = c0
+            shearse    = dxT(i,j)
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
          ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
@@ -2186,8 +2170,7 @@
 
       !-----------------------------------------------------------------
       ! Term 2: u component, T cell i+1,j.  The velocity is one-hot, written as c1/c0
-      ! literals so the compiler folds the seven zero products and the
-      ! whole stress chain they feed.
+      ! one-hot, so each strain rate is a single metric or exactly zero.
       !-----------------------------------------------------------------
          do ij = 1, icellU
 
@@ -2200,35 +2183,20 @@
          ! strain rates
          ! NOTE these are actually strain rates * area  (m^2/s)
          !-----------------------------------------------------------------
-         ! divergence  =  e_11 + e_22
-         divune    = cyp(i,j)*c0 - dyT(i,j)*c1 &
-                   + cxp(i,j)*c0 - dxT(i,j)*c0
-         divunw    = cym(i,j)*c1 + dyT(i,j)*c0 &
-                   + cxp(i,j)*c0 - dxT(i,j)*c0
-         divusw    = cym(i,j)*c0 + dyT(i,j)*c0 &
-                   + cxm(i,j)*c0 + dxT(i,j)*c0
-         divuse    = cyp(i,j)*c0 - dyT(i,j)*c0 &
-                   + cxm(i,j)*c0 + dxT(i,j)*c0
-   
-         ! tension strain rate  =  e_11 - e_22
-         tensionne = -cym(i,j)*c0 - dyT(i,j)*c1 &
-                   +  cxm(i,j)*c0 + dxT(i,j)*c0
-         tensionnw = -cyp(i,j)*c1 + dyT(i,j)*c0 &
-                   +  cxm(i,j)*c0 + dxT(i,j)*c0
-         tensionsw = -cyp(i,j)*c0 + dyT(i,j)*c0 &
-                   +  cxp(i,j)*c0 - dxT(i,j)*c0
-         tensionse = -cym(i,j)*c0 - dyT(i,j)*c0 &
-                   +  cxp(i,j)*c0 - dxT(i,j)*c0
-   
-         ! shearing strain rate  =  2*e_12
-         shearne = -cym(i,j)*c0 - dyT(i,j)*c0 &
-                 -  cxm(i,j)*c0 - dxT(i,j)*c0
-         shearnw = -cyp(i,j)*c0 + dyT(i,j)*c0 &
-                 -  cxm(i,j)*c1 - dxT(i,j)*c0
-         shearsw = -cyp(i,j)*c0 + dyT(i,j)*c0 &
-                 -  cxp(i,j)*c0 + dxT(i,j)*c1
-         shearse = -cym(i,j)*c0 - dyT(i,j)*c0 &
-                 -  cxp(i,j)*c0 + dxT(i,j)*c0
+            ! strain rates reduce to a single metric or exactly zero,
+            ! because the velocity is one-hot (see the commit message)
+            divune     = -dyT(i,j)
+            divunw     = cym(i,j)
+            divusw     = c0
+            divuse     = c0
+            tensionne  = -dyT(i,j)
+            tensionnw  = -cyp(i,j)
+            tensionsw  = c0
+            tensionse  = c0
+            shearne    = c0
+            shearnw    = -cxm(i,j)
+            shearsw    = dxT(i,j)
+            shearse    = c0
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
          ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
@@ -2315,8 +2283,7 @@
 
       !-----------------------------------------------------------------
       ! Term 3: u component, T cell i,j+1.  The velocity is one-hot, written as c1/c0
-      ! literals so the compiler folds the seven zero products and the
-      ! whole stress chain they feed.
+      ! one-hot, so each strain rate is a single metric or exactly zero.
       !-----------------------------------------------------------------
          do ij = 1, icellU
 
@@ -2329,35 +2296,20 @@
          ! strain rates
          ! NOTE these are actually strain rates * area  (m^2/s)
          !-----------------------------------------------------------------
-         ! divergence  =  e_11 + e_22
-         divune    = cyp(i,j)*c0 - dyT(i,j)*c0 &
-                   + cxp(i,j)*c0 - dxT(i,j)*c0
-         divunw    = cym(i,j)*c0 + dyT(i,j)*c0 &
-                   + cxp(i,j)*c0 - dxT(i,j)*c0
-         divusw    = cym(i,j)*c0 + dyT(i,j)*c1 &
-                   + cxm(i,j)*c0 + dxT(i,j)*c0
-         divuse    = cyp(i,j)*c1 - dyT(i,j)*c0 &
-                   + cxm(i,j)*c0 + dxT(i,j)*c0
-   
-         ! tension strain rate  =  e_11 - e_22
-         tensionne = -cym(i,j)*c0 - dyT(i,j)*c0 &
-                   +  cxm(i,j)*c0 + dxT(i,j)*c0
-         tensionnw = -cyp(i,j)*c0 + dyT(i,j)*c0 &
-                   +  cxm(i,j)*c0 + dxT(i,j)*c0
-         tensionsw = -cyp(i,j)*c0 + dyT(i,j)*c1 &
-                   +  cxp(i,j)*c0 - dxT(i,j)*c0
-         tensionse = -cym(i,j)*c1 - dyT(i,j)*c0 &
-                   +  cxp(i,j)*c0 - dxT(i,j)*c0
-   
-         ! shearing strain rate  =  2*e_12
-         shearne = -cym(i,j)*c0 - dyT(i,j)*c0 &
-                 -  cxm(i,j)*c0 - dxT(i,j)*c1
-         shearnw = -cyp(i,j)*c0 + dyT(i,j)*c0 &
-                 -  cxm(i,j)*c0 - dxT(i,j)*c0
-         shearsw = -cyp(i,j)*c0 + dyT(i,j)*c0 &
-                 -  cxp(i,j)*c0 + dxT(i,j)*c0
-         shearse = -cym(i,j)*c0 - dyT(i,j)*c0 &
-                 -  cxp(i,j)*c1 + dxT(i,j)*c0
+            ! strain rates reduce to a single metric or exactly zero,
+            ! because the velocity is one-hot (see the commit message)
+            divune     = c0
+            divunw     = c0
+            divusw     = dyT(i,j)
+            divuse     = cyp(i,j)
+            tensionne  = c0
+            tensionnw  = c0
+            tensionsw  = dyT(i,j)
+            tensionse  = -cym(i,j)
+            shearne    = -dxT(i,j)
+            shearnw    = c0
+            shearsw    = c0
+            shearse    = -cxp(i,j)
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
          ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
@@ -2444,8 +2396,7 @@
 
       !-----------------------------------------------------------------
       ! Term 4: u component, T cell i+1,j+1.  The velocity is one-hot, written as c1/c0
-      ! literals so the compiler folds the seven zero products and the
-      ! whole stress chain they feed.
+      ! one-hot, so each strain rate is a single metric or exactly zero.
       !-----------------------------------------------------------------
          do ij = 1, icellU
 
@@ -2458,35 +2409,20 @@
          ! strain rates
          ! NOTE these are actually strain rates * area  (m^2/s)
          !-----------------------------------------------------------------
-         ! divergence  =  e_11 + e_22
-         divune    = cyp(i,j)*c0 - dyT(i,j)*c0 &
-                   + cxp(i,j)*c0 - dxT(i,j)*c0
-         divunw    = cym(i,j)*c0 + dyT(i,j)*c0 &
-                   + cxp(i,j)*c0 - dxT(i,j)*c0
-         divusw    = cym(i,j)*c1 + dyT(i,j)*c0 &
-                   + cxm(i,j)*c0 + dxT(i,j)*c0
-         divuse    = cyp(i,j)*c0 - dyT(i,j)*c1 &
-                   + cxm(i,j)*c0 + dxT(i,j)*c0
-   
-         ! tension strain rate  =  e_11 - e_22
-         tensionne = -cym(i,j)*c0 - dyT(i,j)*c0 &
-                   +  cxm(i,j)*c0 + dxT(i,j)*c0
-         tensionnw = -cyp(i,j)*c0 + dyT(i,j)*c0 &
-                   +  cxm(i,j)*c0 + dxT(i,j)*c0
-         tensionsw = -cyp(i,j)*c1 + dyT(i,j)*c0 &
-                   +  cxp(i,j)*c0 - dxT(i,j)*c0
-         tensionse = -cym(i,j)*c0 - dyT(i,j)*c1 &
-                   +  cxp(i,j)*c0 - dxT(i,j)*c0
-   
-         ! shearing strain rate  =  2*e_12
-         shearne = -cym(i,j)*c0 - dyT(i,j)*c0 &
-                 -  cxm(i,j)*c0 - dxT(i,j)*c0
-         shearnw = -cyp(i,j)*c0 + dyT(i,j)*c0 &
-                 -  cxm(i,j)*c0 - dxT(i,j)*c1
-         shearsw = -cyp(i,j)*c0 + dyT(i,j)*c0 &
-                 -  cxp(i,j)*c1 + dxT(i,j)*c0
-         shearse = -cym(i,j)*c0 - dyT(i,j)*c0 &
-                 -  cxp(i,j)*c0 + dxT(i,j)*c0
+            ! strain rates reduce to a single metric or exactly zero,
+            ! because the velocity is one-hot (see the commit message)
+            divune     = c0
+            divunw     = c0
+            divusw     = cym(i,j)
+            divuse     = -dyT(i,j)
+            tensionne  = c0
+            tensionnw  = c0
+            tensionsw  = -cyp(i,j)
+            tensionse  = -dyT(i,j)
+            shearne    = c0
+            shearnw    = -dxT(i,j)
+            shearsw    = -cxp(i,j)
+            shearse    = c0
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
          ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
@@ -2577,8 +2513,7 @@
 
       !-----------------------------------------------------------------
       ! Term 5: v component, T cell i,j.  The velocity is one-hot, written as c1/c0
-      ! literals so the compiler folds the seven zero products and the
-      ! whole stress chain they feed.
+      ! one-hot, so each strain rate is a single metric or exactly zero.
       !-----------------------------------------------------------------
          do ij = 1, icellU
 
@@ -2591,35 +2526,20 @@
          ! strain rates
          ! NOTE these are actually strain rates * area  (m^2/s)
          !-----------------------------------------------------------------
-         ! divergence  =  e_11 + e_22
-         divune    = cyp(i,j)*c0 - dyT(i,j)*c0 &
-                   + cxp(i,j)*c1 - dxT(i,j)*c0
-         divunw    = cym(i,j)*c0 + dyT(i,j)*c0 &
-                   + cxp(i,j)*c0 - dxT(i,j)*c0
-         divusw    = cym(i,j)*c0 + dyT(i,j)*c0 &
-                   + cxm(i,j)*c0 + dxT(i,j)*c0
-         divuse    = cyp(i,j)*c0 - dyT(i,j)*c0 &
-                   + cxm(i,j)*c0 + dxT(i,j)*c1
-   
-         ! tension strain rate  =  e_11 - e_22
-         tensionne = -cym(i,j)*c0 - dyT(i,j)*c0 &
-                   +  cxm(i,j)*c1 + dxT(i,j)*c0
-         tensionnw = -cyp(i,j)*c0 + dyT(i,j)*c0 &
-                   +  cxm(i,j)*c0 + dxT(i,j)*c0
-         tensionsw = -cyp(i,j)*c0 + dyT(i,j)*c0 &
-                   +  cxp(i,j)*c0 - dxT(i,j)*c0
-         tensionse = -cym(i,j)*c0 - dyT(i,j)*c0 &
-                   +  cxp(i,j)*c0 - dxT(i,j)*c1
-   
-         ! shearing strain rate  =  2*e_12
-         shearne = -cym(i,j)*c1 - dyT(i,j)*c0 &
-                 -  cxm(i,j)*c0 - dxT(i,j)*c0
-         shearnw = -cyp(i,j)*c0 + dyT(i,j)*c1 &
-                 -  cxm(i,j)*c0 - dxT(i,j)*c0
-         shearsw = -cyp(i,j)*c0 + dyT(i,j)*c0 &
-                 -  cxp(i,j)*c0 + dxT(i,j)*c0
-         shearse = -cym(i,j)*c0 - dyT(i,j)*c0 &
-                 -  cxp(i,j)*c0 + dxT(i,j)*c0
+            ! strain rates reduce to a single metric or exactly zero,
+            ! because the velocity is one-hot (see the commit message)
+            divune     = cxp(i,j)
+            divunw     = c0
+            divusw     = c0
+            divuse     = dxT(i,j)
+            tensionne  = cxm(i,j)
+            tensionnw  = c0
+            tensionsw  = c0
+            tensionse  = -dxT(i,j)
+            shearne    = -cym(i,j)
+            shearnw    = dyT(i,j)
+            shearsw    = c0
+            shearse    = c0
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
          ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
@@ -2706,8 +2626,7 @@
 
       !-----------------------------------------------------------------
       ! Term 6: v component, T cell i,j+1.  The velocity is one-hot, written as c1/c0
-      ! literals so the compiler folds the seven zero products and the
-      ! whole stress chain they feed.
+      ! one-hot, so each strain rate is a single metric or exactly zero.
       !-----------------------------------------------------------------
          do ij = 1, icellU
 
@@ -2720,35 +2639,20 @@
          ! strain rates
          ! NOTE these are actually strain rates * area  (m^2/s)
          !-----------------------------------------------------------------
-         ! divergence  =  e_11 + e_22
-         divune    = cyp(i,j)*c0 - dyT(i,j)*c0 &
-                   + cxp(i,j)*c0 - dxT(i,j)*c1
-         divunw    = cym(i,j)*c0 + dyT(i,j)*c0 &
-                   + cxp(i,j)*c0 - dxT(i,j)*c0
-         divusw    = cym(i,j)*c0 + dyT(i,j)*c0 &
-                   + cxm(i,j)*c0 + dxT(i,j)*c0
-         divuse    = cyp(i,j)*c0 - dyT(i,j)*c0 &
-                   + cxm(i,j)*c1 + dxT(i,j)*c0
-   
-         ! tension strain rate  =  e_11 - e_22
-         tensionne = -cym(i,j)*c0 - dyT(i,j)*c0 &
-                   +  cxm(i,j)*c0 + dxT(i,j)*c1
-         tensionnw = -cyp(i,j)*c0 + dyT(i,j)*c0 &
-                   +  cxm(i,j)*c0 + dxT(i,j)*c0
-         tensionsw = -cyp(i,j)*c0 + dyT(i,j)*c0 &
-                   +  cxp(i,j)*c0 - dxT(i,j)*c0
-         tensionse = -cym(i,j)*c0 - dyT(i,j)*c0 &
-                   +  cxp(i,j)*c1 - dxT(i,j)*c0
-   
-         ! shearing strain rate  =  2*e_12
-         shearne = -cym(i,j)*c0 - dyT(i,j)*c0 &
-                 -  cxm(i,j)*c0 - dxT(i,j)*c0
-         shearnw = -cyp(i,j)*c0 + dyT(i,j)*c0 &
-                 -  cxm(i,j)*c0 - dxT(i,j)*c0
-         shearsw = -cyp(i,j)*c0 + dyT(i,j)*c1 &
-                 -  cxp(i,j)*c0 + dxT(i,j)*c0
-         shearse = -cym(i,j)*c1 - dyT(i,j)*c0 &
-                 -  cxp(i,j)*c0 + dxT(i,j)*c0
+            ! strain rates reduce to a single metric or exactly zero,
+            ! because the velocity is one-hot (see the commit message)
+            divune     = -dxT(i,j)
+            divunw     = c0
+            divusw     = c0
+            divuse     = cxm(i,j)
+            tensionne  = dxT(i,j)
+            tensionnw  = c0
+            tensionsw  = c0
+            tensionse  = cxp(i,j)
+            shearne    = c0
+            shearnw    = c0
+            shearsw    = dyT(i,j)
+            shearse    = -cym(i,j)
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
          ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
@@ -2835,8 +2739,7 @@
 
       !-----------------------------------------------------------------
       ! Term 7: v component, T cell i+1,j.  The velocity is one-hot, written as c1/c0
-      ! literals so the compiler folds the seven zero products and the
-      ! whole stress chain they feed.
+      ! one-hot, so each strain rate is a single metric or exactly zero.
       !-----------------------------------------------------------------
          do ij = 1, icellU
 
@@ -2849,35 +2752,20 @@
          ! strain rates
          ! NOTE these are actually strain rates * area  (m^2/s)
          !-----------------------------------------------------------------
-         ! divergence  =  e_11 + e_22
-         divune    = cyp(i,j)*c0 - dyT(i,j)*c0 &
-                   + cxp(i,j)*c0 - dxT(i,j)*c0
-         divunw    = cym(i,j)*c0 + dyT(i,j)*c0 &
-                   + cxp(i,j)*c1 - dxT(i,j)*c0
-         divusw    = cym(i,j)*c0 + dyT(i,j)*c0 &
-                   + cxm(i,j)*c0 + dxT(i,j)*c1
-         divuse    = cyp(i,j)*c0 - dyT(i,j)*c0 &
-                   + cxm(i,j)*c0 + dxT(i,j)*c0
-   
-         ! tension strain rate  =  e_11 - e_22
-         tensionne = -cym(i,j)*c0 - dyT(i,j)*c0 &
-                   +  cxm(i,j)*c0 + dxT(i,j)*c0
-         tensionnw = -cyp(i,j)*c0 + dyT(i,j)*c0 &
-                   +  cxm(i,j)*c1 + dxT(i,j)*c0
-         tensionsw = -cyp(i,j)*c0 + dyT(i,j)*c0 &
-                   +  cxp(i,j)*c0 - dxT(i,j)*c1
-         tensionse = -cym(i,j)*c0 - dyT(i,j)*c0 &
-                   +  cxp(i,j)*c0 - dxT(i,j)*c0
-   
-         ! shearing strain rate  =  2*e_12
-         shearne = -cym(i,j)*c0 - dyT(i,j)*c1 &
-                 -  cxm(i,j)*c0 - dxT(i,j)*c0
-         shearnw = -cyp(i,j)*c1 + dyT(i,j)*c0 &
-                 -  cxm(i,j)*c0 - dxT(i,j)*c0
-         shearsw = -cyp(i,j)*c0 + dyT(i,j)*c0 &
-                 -  cxp(i,j)*c0 + dxT(i,j)*c0
-         shearse = -cym(i,j)*c0 - dyT(i,j)*c0 &
-                 -  cxp(i,j)*c0 + dxT(i,j)*c0
+            ! strain rates reduce to a single metric or exactly zero,
+            ! because the velocity is one-hot (see the commit message)
+            divune     = c0
+            divunw     = cxp(i,j)
+            divusw     = dxT(i,j)
+            divuse     = c0
+            tensionne  = c0
+            tensionnw  = cxm(i,j)
+            tensionsw  = -dxT(i,j)
+            tensionse  = c0
+            shearne    = -dyT(i,j)
+            shearnw    = -cyp(i,j)
+            shearsw    = c0
+            shearse    = c0
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
          ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
@@ -2964,8 +2852,7 @@
 
       !-----------------------------------------------------------------
       ! Term 8: v component, T cell i+1,j+1.  The velocity is one-hot, written as c1/c0
-      ! literals so the compiler folds the seven zero products and the
-      ! whole stress chain they feed.
+      ! one-hot, so each strain rate is a single metric or exactly zero.
       !-----------------------------------------------------------------
          do ij = 1, icellU
 
@@ -2978,35 +2865,20 @@
          ! strain rates
          ! NOTE these are actually strain rates * area  (m^2/s)
          !-----------------------------------------------------------------
-         ! divergence  =  e_11 + e_22
-         divune    = cyp(i,j)*c0 - dyT(i,j)*c0 &
-                   + cxp(i,j)*c0 - dxT(i,j)*c0
-         divunw    = cym(i,j)*c0 + dyT(i,j)*c0 &
-                   + cxp(i,j)*c0 - dxT(i,j)*c1
-         divusw    = cym(i,j)*c0 + dyT(i,j)*c0 &
-                   + cxm(i,j)*c1 + dxT(i,j)*c0
-         divuse    = cyp(i,j)*c0 - dyT(i,j)*c0 &
-                   + cxm(i,j)*c0 + dxT(i,j)*c0
-   
-         ! tension strain rate  =  e_11 - e_22
-         tensionne = -cym(i,j)*c0 - dyT(i,j)*c0 &
-                   +  cxm(i,j)*c0 + dxT(i,j)*c0
-         tensionnw = -cyp(i,j)*c0 + dyT(i,j)*c0 &
-                   +  cxm(i,j)*c0 + dxT(i,j)*c1
-         tensionsw = -cyp(i,j)*c0 + dyT(i,j)*c0 &
-                   +  cxp(i,j)*c1 - dxT(i,j)*c0
-         tensionse = -cym(i,j)*c0 - dyT(i,j)*c0 &
-                   +  cxp(i,j)*c0 - dxT(i,j)*c0
-   
-         ! shearing strain rate  =  2*e_12
-         shearne = -cym(i,j)*c0 - dyT(i,j)*c0 &
-                 -  cxm(i,j)*c0 - dxT(i,j)*c0
-         shearnw = -cyp(i,j)*c0 + dyT(i,j)*c0 &
-                 -  cxm(i,j)*c0 - dxT(i,j)*c0
-         shearsw = -cyp(i,j)*c1 + dyT(i,j)*c0 &
-                 -  cxp(i,j)*c0 + dxT(i,j)*c0
-         shearse = -cym(i,j)*c0 - dyT(i,j)*c1 &
-                 -  cxp(i,j)*c0 + dxT(i,j)*c0
+            ! strain rates reduce to a single metric or exactly zero,
+            ! because the velocity is one-hot (see the commit message)
+            divune     = c0
+            divunw     = -dxT(i,j)
+            divusw     = cxm(i,j)
+            divuse     = c0
+            tensionne  = c0
+            tensionnw  = dxT(i,j)
+            tensionsw  = cxp(i,j)
+            tensionse  = c0
+            shearne    = c0
+            shearnw    = c0
+            shearsw    = -cyp(i,j)
+            shearse    = -dyT(i,j)
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
          ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
