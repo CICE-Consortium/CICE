@@ -210,8 +210,8 @@ they are not tested by the Consortium on a regular basis.
 
 .. _WAVEforcing:
 
-WW3 and WAM wave Forcing
-------------------------------------
+WW3 and WAM Wave Forcing
+---------------------------
 
 The joint Floe Size and Thickness Distribution (FSD and FSTD) is enabled using the namelist setting ``tr_fsd``. Because it is not recommended to use the FSD without ocean surface waves, input data on ocean surface wave spectra is provided for testing. As with the other CICE datasets, this data should not be used for production runs or publications.
 
