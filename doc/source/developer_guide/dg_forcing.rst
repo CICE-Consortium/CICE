@@ -211,19 +211,28 @@ they are not tested by the Consortium on a regular basis.
 .. _WAVEforcing:
 
 WW3 and WAM Wave Forcing
----------------------------
+------------------------
 
-The joint Floe Size and Thickness Distribution (FSD and FSTD) is enabled using the namelist setting ``tr_fsd``. Because it is not recommended to use the FSD without ocean surface waves, input data on ocean surface wave spectra is provided for testing. As with the other CICE datasets, this data should not be used for production runs or publications.
+The joint floe size and thickness distribution (FSD and FSTD) is enabled with the namelist
+setting ``tr_fsd``. Because it is not recommended to use the FSD without ocean surface waves,
+input data on ocean surface wave spectra is provided for testing. As with the other CICE
+datasets, this data should not be used for production runs or publications.
 
-The namelist setting ``wave_spec_type`` determines the method in Icepack that reconstructs the sea surface height.
-- ``wave_spec_type`` = 'constant’ means that, for the current wave spectrum (wave power as a function of frequency and time for a given grid cell) Icepack constructs the sea-surface-height realization from the wave spectrum using a fixed/constant phase. It does not mean the wave input spectrum is constant in time. This ensures deterministic, bit-for-bit-reproducible ice fracture calculations, normally using one realization per coupling step.
-- ``wave_spec_type`` = 'random' means Icepack will use a random phase and repeated realizations until the surface height converges to reconstruct the sea surface height. This may be more statistically accurate but is computationally more expensive, and simulations will not be BFB reproducible.
+The namelist setting ``wave_spec_type`` sets how Icepack builds a sea surface height
+realization from the wave spectrum (wave energy as a function of frequency in each grid cell):
+
+- ``constant``: the realization uses constant phases. It does not mean that the wave spectrum
+  is constant in time. The fracture calculation is deterministic and bit-for-bit reproducible,
+  with one realization per wave fracture calculation.
+- ``random``: the realization uses random phases, and is repeated until the fracture histogram
+  converges. This may be statistically more accurate, but is computationally more expensive,
+  and the results may not be bit-for-bit reproducible.
 
 Time-varying ocean surface wave spectra can be read from a NetCDF ``wave_spec_file``
 that holds its own time axis ``time`` and wave frequencies ``wavefreq`` (1/s), together with
 the directionally integrated wave spectral density ``efreq`` (m\ :sup:`2` s) on the CICE grid,
-dimensioned (nx, ny, nfreq, time).  The frequencies and their number (``nfreq``) are taken from
-the file instead of the namelist, and the reference date is read from the ``units`` attribute of 
+dimensioned (nx, ny, nfreq, time). The frequencies and their number (``nfreq``) are taken from
+the file instead of the namelist, and the reference date is read from the ``units`` attribute of
 ``time`` (days, hours, minutes or seconds since yyyy-mm-dd HH:MM:SS). The record
 spacing may vary, and the spectrum is interpolated linearly in time between the two records
 bracketing the model time. This requires ``wave_spec_type`` = ``constant`` or ``random``.
@@ -243,8 +252,7 @@ by the namelist variable ``dt_wavefracture`` (in seconds):
   once, also with uneven record spacing and across restarts.
 
 Forcing files processed from WAM (WAve Model) or WW3 (WAVEWATCH III) output can be used.
-Provided the variable names match, as is the case for WAM, time varying wave spectra is used.
-For WW3 the frequencies ``f``, which must be renamed to ``wavefreq`` if time-varying wave spectra
-is prefeered. The NCO command ``ncrename -v f,wavefreq <file>`` can change.
-Without this change only one constant wave spectra is used, throughout the simulation.
-
+Processed WAM files already use the variable names above, so their spectra vary in time.
+WW3 names the frequencies ``f``; to use time-varying spectra, rename it to ``wavefreq``,
+e.g. with the NCO command ``ncrename -v f,wavefreq <file>``. Without this change, a single
+wave spectrum is used, constant throughout the simulation.
