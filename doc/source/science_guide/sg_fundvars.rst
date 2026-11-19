@@ -13,33 +13,7 @@ modeling is to describe the evolution of the ice thickness distribution
 (ITD) in time and space.
 
 In addition to an ice thickness distribution, CICE includes an optional capability for a floe size distribution.
-Ice floe horizontal size may change through vertical and lateral growth and melting of existing floes, freezing of new ice, wave breaking, and welding of floes in freezing conditions.  The floe size distribution (FSD) is a probability function that characterizes this variability. The scheme is based on the theoretical framework described in :cite:`Horvat15` for a joint floe size and thickness distribution (FSTD), and was implemented by :cite:`Roach18` and :cite:`Roach19`.  The joint floe size distribution is carried as an area-weighted tracer, defined as the fraction of ice belonging to a given thickness category with lateral floe size belong to a given floe size class. This development includes interactions between sea ice and ocean surface waves. Input data on ocean surface wave spectra at a single time is provided for testing, but as with the other CICE datasets, it should not be used for production runs or publications. It is not recommended to use the FSD without ocean surface waves.
-
-Time-varying ocean surface wave spectra can be read from a NetCDF ``wave_spec_file``
-that holds its own time axis ``time`` and wave frequencies ``wavefreq`` (1/s), together with
-the directionally integrated wave spectral density ``efreq`` (m\ :sup:`2` s) on the CICE grid,
-dimensioned (nx, ny, nfreq, time). Forcing files processed from WAM (WAve Model) or
-WW3 (WAVEWATCH III) output can be used, provided the variable names match; WW3 names the
-frequencies ``f``, which must be renamed to ``wavefreq``, e.g. ``ncrename -v f,wavefreq``.
-The frequencies and their number (``nfreq``) are then taken from the file instead of the
-namelist, and the reference date is read
-from the ``units`` attribute of ``time`` (days, hours, minutes or seconds since a date). The record
-spacing may vary, and the spectrum is interpolated linearly in time between the two records
-bracketing the model time. This requires ``wave_spec_type`` = ``constant`` or ``random``. A
-``wave_spec_file`` without ``time`` and/or ``wavefreq`` is read as before: once, from the 6-hourly record
-at the start time, with the hardwired Icepack frequencies, and kept constant during the run.
-
-Wave fracture is the computationally expensive part of the FSD. How often it is computed is set
-by the namelist variable ``dt_wavefracture`` (in seconds):
-
-- ``-1`` (default): every timestep.
-- ``>0``: every ``dt_wavefracture`` seconds (has to be a multiple of ``dt``), on the last timestep
-  of each interval, using the wave spectrum at that time. The fracture is applied over the whole
-  interval, so the total fracture is conserved while the cost is reduced accordingly.
-- ``0``: at the time records of the ``wave_spec_file`` (requires ``time`` and ``wavefreq`` in the file).
-  The fracture is computed on the timestep that reaches a record, using that record's spectrum, and
-  applied over the time since the previous record. Every interval between records is fractured exactly
-  once, also with uneven record spacing and across restarts.
+Ice floe horizontal size may change through vertical and lateral growth and melting of existing floes, freezing of new ice, wave breaking, and welding of floes in freezing conditions.  The floe size distribution (FSD) is a probability function that characterizes this variability. The scheme is based on the theoretical framework described in :cite:`Horvat15` for a joint floe size and thickness distribution (FSTD), and was implemented by :cite:`Roach18` and :cite:`Roach19`.  The joint floe size distribution is carried as an area-weighted tracer, defined as the fraction of ice belonging to a given thickness category with lateral floe size belong to a given floe size class. This development includes interactions between sea ice and ocean surface waves. Input data on ocean surface wave spectra is provided for testing, but as with the other CICE datasets, it should not be used for production runs or publications. It is not recommended to use the FSD without ocean surface waves.
 
 Additional information about the ITD and joint FSTD for CICE can be found in the
 `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/main/science_guide/index.html>`_.
