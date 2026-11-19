@@ -201,10 +201,6 @@ module ice_dyn_core1d
       !--------------------------------------------------------------------------
       ! strain rates - NOTE these are actually strain rates * area  (m^2/s)
       !--------------------------------------------------------------------------
-      ! ⚠ The 1-D stencil is named from a different origin than the block
-      ! one: cc/ee/se/ne here are 00/W/S/SW there.  That renaming is the
-      ! whole of what strain_rates_1d used to be -- the arithmetic was a
-      ! copy, and it had drifted out of step with the block version.
       call strain_rates_scalar (tmp_uvel_cc, tmp_uvel_ee, &
                             tmp_uvel_se, tmp_uvel_ne, &
                             tmp_vvel_cc, tmp_vvel_ee, &

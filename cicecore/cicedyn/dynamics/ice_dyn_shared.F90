@@ -1752,6 +1752,7 @@
 !
 ! 2019: subroutine created by Philippe Blain, ECCC
 ! 2026: JF Lemieux added calculation of Deltapp
+! 2026: Till Rasmussen modified implementation of Deltapp
 
 ! Lemieux, J. F. et al. Consistent ridging and opening coefficients 
 ! for multi-category sea ice models with modified viscous-plastic 
@@ -1847,10 +1848,6 @@
          !-----------------------------------------------------------------
          divu(i,j) = p25*(divune + divunw + divuse + divusw) * tarear(i,j)
 
-         ! Delta_G, for mechanical redistribution.  Everything it needs is
-         ! intent(out) from the call above, so it is formed here rather than
-         ! carried through strain_rates -- the stress path runs ndte times a
-         ! step and never uses it.
          Deltappne = sqrt(divune**2 + epp2i*(tensionne**2 + shearne**2))
          Deltappnw = sqrt(divunw**2 + epp2i*(tensionnw**2 + shearnw**2))
          Deltappsw = sqrt(divusw**2 + epp2i*(tensionsw**2 + shearsw**2))
@@ -2106,8 +2103,6 @@
 ! Compute strain rates
 !
 ! author: Elizabeth C. Hunke, LANL
-!
-! 2019: subroutine created by Philippe Blain, ECCC
 
 !=======================================================================
 ! Strain rates at the four corners of a T cell, from the fourteen numbers
@@ -2121,6 +2116,8 @@
 ! and it had already drifted out of step with this one.
 !
 ! authors: Elizabeth C. Hunke, LANL
+! 2019: subroutine created by Philippe Blain, ECCC
+! 2026: Updated by Till Rasmussen, DMI
 
       subroutine strain_rates_scalar (uvel00   , uvelW,      &
                                       uvelS    , uvelSW,     &
@@ -2147,10 +2144,6 @@
         tensionne, tensionnw, tensionse, tensionsw, & ! tension
         shearne, shearnw, shearse, shearsw            ! shearing
 
-      ! Delta is NOT formed here.  The stress path runs ndte times a step and
-      ! each caller needs a different one (Delta with e_factor, Delta_G with
-      ! epp2i, none at all in formDiag_step1), so it is formed at the use site
-      ! from the intent(out) values above -- as deformations already does.
       character(len=*), parameter :: subname = '(strain_rates_scalar)'
 
       !-----------------------------------------------------------------
