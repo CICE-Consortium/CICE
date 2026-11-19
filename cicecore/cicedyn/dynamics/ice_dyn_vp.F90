@@ -2017,9 +2017,6 @@
          i, j, ij, iu, ju
 
       real (kind=dbl_kind) :: &
-        divune, divunw, divuse, divusw            , & ! divergence
-        tensionne, tensionnw, tensionse, tensionsw, & ! tension
-        shearne, shearnw, shearse, shearsw        , & ! shearing
         stressp_1, stressp_2, stressp_3, stressp_4, &
         stressm_1, stressm_2, stressm_3, stressm_4, &
         stress12_1,stress12_2,stress12_3,stress12_4,&
@@ -2072,37 +2069,25 @@
          !-----------------------------------------------------------------
             ! strain rates reduce to a single metric or exactly zero,
             ! because the velocity is one-hot (see the commit message)
-            divune     = cyp(i,j)
-            divunw     = dyT(i,j)
-            divusw     = c0
-            divuse     = c0
-            tensionne  = -cym(i,j)
-            tensionnw  = dyT(i,j)
-            tensionsw  = c0
-            tensionse  = c0
-            shearne    = -cxm(i,j)
-            shearnw    = c0
-            shearsw    = c0
-            shearse    = dxT(i,j)
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
          ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
          !-----------------------------------------------------------------
 
-            stressp_1 = zetax2(i,j,1)*divune
-            stressp_2 = zetax2(i,j,2)*divunw
+            stressp_1 = zetax2(i,j,1)*cyp(i,j)
+            stressp_2 = zetax2(i,j,2)*dyT(i,j)
             stressp_3  = c0
             stressp_4  = c0
 
-            stressm_1 = etax2(i,j,1)*tensionne
-            stressm_2 = etax2(i,j,2)*tensionnw
+            stressm_1 = etax2(i,j,1)*(-cym(i,j))
+            stressm_2 = etax2(i,j,2)*dyT(i,j)
             stressm_3  = c0
             stressm_4  = c0
 
-            stress12_1 = etax2(i,j,1)*shearne*p5
+            stress12_1 = etax2(i,j,1)*(-cxm(i,j))*p5
             stress12_2 = c0
             stress12_3 = c0
-            stress12_4 = etax2(i,j,4)*shearse*p5
+            stress12_4 = etax2(i,j,4)*dxT(i,j)*p5
 
          !-----------------------------------------------------------------
          ! combinations of the stresses for the momentum equation ! kg/s^2
@@ -2181,36 +2166,24 @@
          !-----------------------------------------------------------------
             ! strain rates reduce to a single metric or exactly zero,
             ! because the velocity is one-hot (see the commit message)
-            divune     = -dyT(i,j)
-            divunw     = cym(i,j)
-            divusw     = c0
-            divuse     = c0
-            tensionne  = -dyT(i,j)
-            tensionnw  = -cyp(i,j)
-            tensionsw  = c0
-            tensionse  = c0
-            shearne    = c0
-            shearnw    = -cxm(i,j)
-            shearsw    = dxT(i,j)
-            shearse    = c0
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
          ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
          !-----------------------------------------------------------------
 
-            stressp_1 = zetax2(i,j,1)*divune
-            stressp_2 = zetax2(i,j,2)*divunw
+            stressp_1 = zetax2(i,j,1)*(-dyT(i,j))
+            stressp_2 = zetax2(i,j,2)*cym(i,j)
             stressp_3  = c0
             stressp_4  = c0
 
-            stressm_1 = etax2(i,j,1)*tensionne
-            stressm_2 = etax2(i,j,2)*tensionnw
+            stressm_1 = etax2(i,j,1)*(-dyT(i,j))
+            stressm_2 = etax2(i,j,2)*(-cyp(i,j))
             stressm_3  = c0
             stressm_4  = c0
 
             stress12_1 = c0
-            stress12_2 = etax2(i,j,2)*shearnw*p5
-            stress12_3 = etax2(i,j,3)*shearsw*p5
+            stress12_2 = etax2(i,j,2)*(-cxm(i,j))*p5
+            stress12_3 = etax2(i,j,3)*dxT(i,j)*p5
             stress12_4 = c0
 
          !-----------------------------------------------------------------
@@ -2290,18 +2263,6 @@
          !-----------------------------------------------------------------
             ! strain rates reduce to a single metric or exactly zero,
             ! because the velocity is one-hot (see the commit message)
-            divune     = c0
-            divunw     = c0
-            divusw     = dyT(i,j)
-            divuse     = cyp(i,j)
-            tensionne  = c0
-            tensionnw  = c0
-            tensionsw  = dyT(i,j)
-            tensionse  = -cym(i,j)
-            shearne    = -dxT(i,j)
-            shearnw    = c0
-            shearsw    = c0
-            shearse    = -cxp(i,j)
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
          ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
@@ -2309,18 +2270,18 @@
 
             stressp_1  = c0
             stressp_2  = c0
-            stressp_3 = zetax2(i,j,3)*divusw
-            stressp_4 = zetax2(i,j,4)*divuse
+            stressp_3 = zetax2(i,j,3)*dyT(i,j)
+            stressp_4 = zetax2(i,j,4)*cyp(i,j)
 
             stressm_1  = c0
             stressm_2  = c0
-            stressm_3 = etax2(i,j,3)*tensionsw
-            stressm_4 = etax2(i,j,4)*tensionse
+            stressm_3 = etax2(i,j,3)*dyT(i,j)
+            stressm_4 = etax2(i,j,4)*(-cym(i,j))
 
-            stress12_1 = etax2(i,j,1)*shearne*p5
+            stress12_1 = etax2(i,j,1)*(-dxT(i,j))*p5
             stress12_2 = c0
             stress12_3 = c0
-            stress12_4 = etax2(i,j,4)*shearse*p5
+            stress12_4 = etax2(i,j,4)*(-cxp(i,j))*p5
 
          !-----------------------------------------------------------------
          ! combinations of the stresses for the momentum equation ! kg/s^2
@@ -2399,18 +2360,6 @@
          !-----------------------------------------------------------------
             ! strain rates reduce to a single metric or exactly zero,
             ! because the velocity is one-hot (see the commit message)
-            divune     = c0
-            divunw     = c0
-            divusw     = cym(i,j)
-            divuse     = -dyT(i,j)
-            tensionne  = c0
-            tensionnw  = c0
-            tensionsw  = -cyp(i,j)
-            tensionse  = -dyT(i,j)
-            shearne    = c0
-            shearnw    = -dxT(i,j)
-            shearsw    = -cxp(i,j)
-            shearse    = c0
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
          ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
@@ -2418,17 +2367,17 @@
 
             stressp_1  = c0
             stressp_2  = c0
-            stressp_3 = zetax2(i,j,3)*divusw
-            stressp_4 = zetax2(i,j,4)*divuse
+            stressp_3 = zetax2(i,j,3)*cym(i,j)
+            stressp_4 = zetax2(i,j,4)*(-dyT(i,j))
 
             stressm_1  = c0
             stressm_2  = c0
-            stressm_3 = etax2(i,j,3)*tensionsw
-            stressm_4 = etax2(i,j,4)*tensionse
+            stressm_3 = etax2(i,j,3)*(-cyp(i,j))
+            stressm_4 = etax2(i,j,4)*(-dyT(i,j))
 
             stress12_1 = c0
-            stress12_2 = etax2(i,j,2)*shearnw*p5
-            stress12_3 = etax2(i,j,3)*shearsw*p5
+            stress12_2 = etax2(i,j,2)*(-dxT(i,j))*p5
+            stress12_3 = etax2(i,j,3)*(-cxp(i,j))*p5
             stress12_4 = c0
 
          !-----------------------------------------------------------------
@@ -2512,35 +2461,23 @@
          !-----------------------------------------------------------------
             ! strain rates reduce to a single metric or exactly zero,
             ! because the velocity is one-hot (see the commit message)
-            divune     = cxp(i,j)
-            divunw     = c0
-            divusw     = c0
-            divuse     = dxT(i,j)
-            tensionne  = cxm(i,j)
-            tensionnw  = c0
-            tensionsw  = c0
-            tensionse  = -dxT(i,j)
-            shearne    = -cym(i,j)
-            shearnw    = dyT(i,j)
-            shearsw    = c0
-            shearse    = c0
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
          ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
          !-----------------------------------------------------------------
 
-            stressp_1 = zetax2(i,j,1)*divune
+            stressp_1 = zetax2(i,j,1)*cxp(i,j)
             stressp_2  = c0
             stressp_3  = c0
-            stressp_4 = zetax2(i,j,4)*divuse
+            stressp_4 = zetax2(i,j,4)*dxT(i,j)
 
-            stressm_1 = etax2(i,j,1)*tensionne
+            stressm_1 = etax2(i,j,1)*cxm(i,j)
             stressm_2  = c0
             stressm_3  = c0
-            stressm_4 = etax2(i,j,4)*tensionse
+            stressm_4 = etax2(i,j,4)*(-dxT(i,j))
 
-            stress12_1 = etax2(i,j,1)*shearne*p5
-            stress12_2 = etax2(i,j,2)*shearnw*p5
+            stress12_1 = etax2(i,j,1)*(-cym(i,j))*p5
+            stress12_2 = etax2(i,j,2)*dyT(i,j)*p5
             stress12_3 = c0
             stress12_4 = c0
 
@@ -2621,37 +2558,25 @@
          !-----------------------------------------------------------------
             ! strain rates reduce to a single metric or exactly zero,
             ! because the velocity is one-hot (see the commit message)
-            divune     = -dxT(i,j)
-            divunw     = c0
-            divusw     = c0
-            divuse     = cxm(i,j)
-            tensionne  = dxT(i,j)
-            tensionnw  = c0
-            tensionsw  = c0
-            tensionse  = cxp(i,j)
-            shearne    = c0
-            shearnw    = c0
-            shearsw    = dyT(i,j)
-            shearse    = -cym(i,j)
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
          ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
          !-----------------------------------------------------------------
 
-            stressp_1 = zetax2(i,j,1)*divune
+            stressp_1 = zetax2(i,j,1)*(-dxT(i,j))
             stressp_2  = c0
             stressp_3  = c0
-            stressp_4 = zetax2(i,j,4)*divuse
+            stressp_4 = zetax2(i,j,4)*cxm(i,j)
 
-            stressm_1 = etax2(i,j,1)*tensionne
+            stressm_1 = etax2(i,j,1)*dxT(i,j)
             stressm_2  = c0
             stressm_3  = c0
-            stressm_4 = etax2(i,j,4)*tensionse
+            stressm_4 = etax2(i,j,4)*cxp(i,j)
 
             stress12_1 = c0
             stress12_2 = c0
-            stress12_3 = etax2(i,j,3)*shearsw*p5
-            stress12_4 = etax2(i,j,4)*shearse*p5
+            stress12_3 = etax2(i,j,3)*dyT(i,j)*p5
+            stress12_4 = etax2(i,j,4)*(-cym(i,j))*p5
 
          !-----------------------------------------------------------------
          ! combinations of the stresses for the momentum equation ! kg/s^2
@@ -2730,35 +2655,23 @@
          !-----------------------------------------------------------------
             ! strain rates reduce to a single metric or exactly zero,
             ! because the velocity is one-hot (see the commit message)
-            divune     = c0
-            divunw     = cxp(i,j)
-            divusw     = dxT(i,j)
-            divuse     = c0
-            tensionne  = c0
-            tensionnw  = cxm(i,j)
-            tensionsw  = -dxT(i,j)
-            tensionse  = c0
-            shearne    = -dyT(i,j)
-            shearnw    = -cyp(i,j)
-            shearsw    = c0
-            shearse    = c0
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
          ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
          !-----------------------------------------------------------------
 
             stressp_1  = c0
-            stressp_2 = zetax2(i,j,2)*divunw
-            stressp_3 = zetax2(i,j,3)*divusw
+            stressp_2 = zetax2(i,j,2)*cxp(i,j)
+            stressp_3 = zetax2(i,j,3)*dxT(i,j)
             stressp_4  = c0
 
             stressm_1  = c0
-            stressm_2 = etax2(i,j,2)*tensionnw
-            stressm_3 = etax2(i,j,3)*tensionsw
+            stressm_2 = etax2(i,j,2)*cxm(i,j)
+            stressm_3 = etax2(i,j,3)*(-dxT(i,j))
             stressm_4  = c0
 
-            stress12_1 = etax2(i,j,1)*shearne*p5
-            stress12_2 = etax2(i,j,2)*shearnw*p5
+            stress12_1 = etax2(i,j,1)*(-dyT(i,j))*p5
+            stress12_2 = etax2(i,j,2)*(-cyp(i,j))*p5
             stress12_3 = c0
             stress12_4 = c0
 
@@ -2839,37 +2752,25 @@
          !-----------------------------------------------------------------
             ! strain rates reduce to a single metric or exactly zero,
             ! because the velocity is one-hot (see the commit message)
-            divune     = c0
-            divunw     = -dxT(i,j)
-            divusw     = cxm(i,j)
-            divuse     = c0
-            tensionne  = c0
-            tensionnw  = dxT(i,j)
-            tensionsw  = cxp(i,j)
-            tensionse  = c0
-            shearne    = c0
-            shearnw    = c0
-            shearsw    = -cyp(i,j)
-            shearse    = -dyT(i,j)
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
          ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
          !-----------------------------------------------------------------
 
             stressp_1  = c0
-            stressp_2 = zetax2(i,j,2)*divunw
-            stressp_3 = zetax2(i,j,3)*divusw
+            stressp_2 = zetax2(i,j,2)*(-dxT(i,j))
+            stressp_3 = zetax2(i,j,3)*cxm(i,j)
             stressp_4  = c0
 
             stressm_1  = c0
-            stressm_2 = etax2(i,j,2)*tensionnw
-            stressm_3 = etax2(i,j,3)*tensionsw
+            stressm_2 = etax2(i,j,2)*dxT(i,j)
+            stressm_3 = etax2(i,j,3)*cxp(i,j)
             stressm_4  = c0
 
             stress12_1 = c0
             stress12_2 = c0
-            stress12_3 = etax2(i,j,3)*shearsw*p5
-            stress12_4 = etax2(i,j,4)*shearse*p5
+            stress12_3 = etax2(i,j,3)*(-cyp(i,j))*p5
+            stress12_4 = etax2(i,j,4)*(-dyT(i,j))*p5
 
          !-----------------------------------------------------------------
          ! combinations of the stresses for the momentum equation ! kg/s^2
