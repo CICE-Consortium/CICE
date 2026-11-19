@@ -358,7 +358,7 @@
          if (f_smassice(1:1)/= 'x') then
             worka(:,:) = c0
             do k = 1, nzslyr
-               worka(ilo:ihi,jlo:jhi) = worka(ilo:ihi,jlo:jhi) &
+               worka(ilo:ihi,jlo:jhi) = worka(ilo:ihi,jlo:jhi)      &
                           + trcr(ilo:ihi,jlo:jhi,nt_smice+k-1,iblk)
             enddo
             worka(ilo:ihi,jlo:jhi) = worka(ilo:ihi,jlo:jhi) * vsno(ilo:ihi,jlo:jhi,iblk) / real(nslyr,kind=dbl_kind)
@@ -367,7 +367,7 @@
          if (f_smassliq(1:1)/= 'x') then
             worka(:,:) = c0
             do k = 1, nzslyr
-               worka(ilo:ihi,jlo:jhi) = worka(ilo:ihi,jlo:jhi) &
+               worka(ilo:ihi,jlo:jhi) = worka(ilo:ihi,jlo:jhi)      &
                           + trcr(ilo:ihi,jlo:jhi,nt_smliq+k-1,iblk)
             enddo
             worka(ilo:ihi,jlo:jhi) = worka(ilo:ihi,jlo:jhi) * vsno(ilo:ihi,jlo:jhi,iblk) / real(nslyr,kind=dbl_kind)
@@ -376,7 +376,7 @@
          if (f_rhos_cmp(1:1)/= 'x') then
             worka(:,:) = c0
             do k = 1, nzslyr
-               worka(ilo:ihi,jlo:jhi) = worka(ilo:ihi,jlo:jhi) &
+               worka(ilo:ihi,jlo:jhi) = worka(ilo:ihi,jlo:jhi)      &
                           + trcr(ilo:ihi,jlo:jhi,nt_rhos+k-1,iblk)
             enddo
             worka(ilo:ihi,jlo:jhi) = worka(ilo:ihi,jlo:jhi) / real(nslyr,kind=dbl_kind)
@@ -385,7 +385,7 @@
          if (f_rhos_cnt(1:1)/= 'x') then
             worka(:,:) = c0
             do k = 1, nzslyr
-               worka(ilo:ihi,jlo:jhi) = worka(ilo:ihi,jlo:jhi) &
+               worka(ilo:ihi,jlo:jhi) = worka(ilo:ihi,jlo:jhi)      &
                           + trcr(ilo:ihi,jlo:jhi,nt_smice+k-1,iblk) &
                           + trcr(ilo:ihi,jlo:jhi,nt_smliq+k-1,iblk)
             enddo
@@ -401,16 +401,13 @@
             worka(ilo:ihi,jlo:jhi) = worka(ilo:ihi,jlo:jhi) / real(nslyr,kind=dbl_kind)
             call accum_hist_field(n_rsnw, iblk, worka, a2D)
          endif
-         if (f_meltsliq(1:1)/= 'x') &
-            call accum_hist_field(n_meltsliq, iblk, &
-                 meltsliq(:,:,iblk), a2D)
-         if (f_fsloss(1:1)/= 'x') &
-            call accum_hist_field(n_fsloss, iblk, &
-                 fsloss(:,:,iblk), a2D)
+         if (f_meltsliq     (1:1)/= 'x')      &
+            call accum_hist_field(n_meltsliq     , iblk, meltsliq(:,:,iblk), a2D)
+         if (f_fsloss       (1:1)/= 'x')        &
+            call accum_hist_field(n_fsloss       , iblk, fsloss  (:,:,iblk), a2D)
 
          if (f_sisndmasswind(1:1)/= 'x') &
-            call accum_hist_field(n_sisndmasswind, iblk, &
-                 fsloss(:,:,iblk), a2D)
+            call accum_hist_field(n_sisndmasswind, iblk, fsloss  (:,:,iblk), a2D)
 
          endif ! allocated(a2D)
 
@@ -455,7 +452,7 @@
             workb(:,:,:) = c0
             do n = 1, ncat_hist
                do k = 1, nzslyr
-                  workb(:,:,n) = workb(:,:,n) &
+                  workb(:,:,n) = workb(:,:,n)                   &
                                + trcrn(:,:,nt_smice+k-1,n,iblk) &
                                + trcrn(:,:,nt_smliq+k-1,n,iblk)
                enddo

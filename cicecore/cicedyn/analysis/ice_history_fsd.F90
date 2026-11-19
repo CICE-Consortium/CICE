@@ -308,8 +308,9 @@
 
       subroutine accum_hist_fsd (dt, iblk)
 
-      use ice_blocks, only: nx_block, ny_block
+      use ice_blocks, only: block, get_block, nx_block, ny_block
       use ice_constants, only: c0, c1, c2, c4
+      use ice_domain, only: blocks_ice
       use ice_history_shared, only: a2D, a3Df, a4Df, nfsd_hist, &
          ncat_hist, accum_hist_field, n3Dacum, n4Dscum
       use ice_state, only: trcrn, aicen, vicen, aice
@@ -326,7 +327,11 @@
 
       integer (kind=int_kind) :: &
          i, j, n, k, & ! loop indices
+         ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          nt_fsd        ! fsd tracer index
+
+      type (block) :: &
+         this_block           ! block information for current block
       logical (kind=log_kind) :: tr_fsd
       real (kind=dbl_kind) :: floeshape, puny
 
@@ -336,6 +341,14 @@
       real (kind=dbl_kind), dimension(nx_block,ny_block,nfsd_hist,ncat_hist) :: workd
 
       character(len=*), parameter :: subname = '(accum_hist_fsd)'
+
+      ! Bounds before first use: the work arrays are zeroed over the whole
+      ! block but computed only over the physical domain.
+      this_block = get_block(blocks_ice(iblk),iblk)
+      ilo = this_block%ilo
+      ihi = this_block%ihi
+      jlo = this_block%jlo
+      jhi = this_block%jhi
 
       call icepack_query_parameters(floeshape_out=floeshape, puny_out=puny)
       call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
@@ -354,13 +367,12 @@
       if (allocated(a2D)) then
 
       if (f_wave_sig_ht(1:1)/= 'x') &
-         call accum_hist_field(n_wave_sig_ht,   iblk, &
-                               wave_sig_ht(:,:,iblk), a2D)
+         call accum_hist_field(n_wave_sig_ht, iblk, wave_sig_ht(:,:,iblk), a2D)
 
       if (f_aice_ww(1:1)/= 'x') then
-         do j = 1, ny_block
-         do i = 1, nx_block
-            worka(i,j) = c0
+         worka(:,:) = c0
+         do j = jlo, jhi
+         do i = ilo, ihi
             do n = 1, ncat_hist
             do k = 1, nfsd_hist
                worka(i,j) = worka(i,j) + aicen(i,j,n,iblk)*trcrn(i,j,nt_fsd+k-1,n,iblk)
@@ -368,18 +380,17 @@
             end do
          end do
          end do
-         call accum_hist_field(n_aice_ww,   iblk, worka(:,:), a2D)
+         call accum_hist_field(n_aice_ww, iblk, worka(:,:), a2D)
       endif
 
       if (f_diam_ww (1:1) /= 'x') then
-         do j = 1, ny_block
-         do i = 1, nx_block
-            worka(i,j) = c0
-            workb      = c0
+         worka(:,:) = c0
+         do j = jlo, jhi
+         do i = ilo, ihi
+            workb = c0
             do n = 1, ncat_hist
             do k = 1, nfsd_hist
-               workc = aicen(i,j,n,iblk)*trcrn(i,j,nt_fsd+k-1,n,iblk) &
-                     / (c4*floeshape*floe_rad_c(k)**2)
+               workc = aicen(i,j,n,iblk)*trcrn(i,j,nt_fsd+k-1,n,iblk) / (c4*floeshape*floe_rad_c(k)**2)
                ! number-mean radius
                worka(i,j) = worka(i,j) + workc * floe_rad_c(k)
                ! normalization factor
@@ -395,9 +406,9 @@
       endif
 
       if (f_hice_ww (1:1) /= 'x') then
-         do j = 1, ny_block
-         do i = 1, nx_block
-            worka(i,j) = c0
+         worka(:,:) = c0
+         do j = jlo, jhi
+         do i = ilo, ihi
             workb      = c0
             do n = 1, ncat_hist
             do k = 1, nfsd_hist
@@ -416,17 +427,17 @@
       endif
 
       if (f_fsdrad(1:1) /= 'x') then
-         do j = 1, ny_block
-         do i = 1, nx_block
-            worka(i,j) = c0
+         worka(:,:) = c0
+         do j = jlo, jhi
+         do i = ilo, ihi
             if (aice(i,j,iblk) > puny) then
-             do k = 1, nfsd_hist
-                do n = 1, ncat_hist
-                  worka(i,j) = worka(i,j) &
-                               + (trcrn(i,j,nt_fsd+k-1,n,iblk) * floe_rad_c(k) &
-                               * aicen(i,j,n,iblk)/aice(i,j,iblk))
-                 end do
-              end do
+               do k = 1, nfsd_hist
+               do n = 1, ncat_hist
+                  worka(i,j) = worka(i,j)                                    &
+                             + (trcrn(i,j,nt_fsd+k-1,n,iblk) * floe_rad_c(k) &
+                             * aicen(i,j,n,iblk)/aice(i,j,iblk))
+               end do
+               end do
             endif
          end do
          end do
@@ -434,17 +445,17 @@
       endif
 
       if (f_fsdperim(1:1) /= 'x') then
-         do j = 1, ny_block
-         do i = 1, nx_block
-            worka(i,j) = c0
+         worka(:,:) = c0
+         do j = jlo, jhi
+         do i = ilo, ihi
             if (aice(i,j,iblk) > puny) then
-             do k = 1, nfsd_hist
+               do k = 1, nfsd_hist
                do n = 1, ncat_hist
-                  worka(i,j) = worka(i,j) &
-                               + (c8*floeshape*trcrn(i,j,nt_fsd+k-1,n,iblk)*floe_rad_c(k) &
-                                    *aicen(i,j,n,iblk)/(c4*floeshape*floe_rad_c(k)**2 *aice(i,j,iblk)))
+                  worka(i,j) = worka(i,j)                                               &
+                             + (c8*floeshape*trcrn(i,j,nt_fsd+k-1,n,iblk)*floe_rad_c(k) &
+                             *aicen(i,j,n,iblk)/(c4*floeshape*floe_rad_c(k)**2 *aice(i,j,iblk)))
                end do
-              end do
+               end do
             endif
          end do
          end do
@@ -455,16 +466,15 @@
 
       ! 3D category fields
       if (allocated(a3Df)) then
-
+      worke(:,:,:)=c0
       if (f_afsd(1:1) /= 'x') then
-         do j = 1, ny_block
-         do i = 1, nx_block
+         do j = jlo, jhi
+         do i = ilo, ihi
             do k = 1, nfsd_hist
-               worke(i,j,k)=c0
-               do n = 1, ncat_hist
-                  worke(i,j,k) = worke(i,j,k) + (trcrn(i,j,nt_fsd+k-1,n,iblk) &
-                               * aicen(i,j,n,iblk)/floe_binwidth(k))
-               end do
+            do n = 1, ncat_hist
+               worke(i,j,k) = worke(i,j,k) + (trcrn(i,j,nt_fsd+k-1,n,iblk) &
+                            * aicen(i,j,n,iblk)/floe_binwidth(k))
+            end do
             end do
          end do
          end do
@@ -472,23 +482,23 @@
       endif
 
       if (f_dafsd_newi(1:1)/= 'x') then
-         worke(:,:,1:nfsd_hist) = d_afsd_newi(:,:,1:nfsd_hist,iblk)/dt
+         worke(ilo:ihi,jlo:jhi,1:nfsd_hist)= d_afsd_newi(ilo:ihi,jlo:jhi,1:nfsd_hist,iblk)/dt
          call accum_hist_field(n_dafsd_newi-n3Dacum, iblk, nfsd_hist, worke, a3Df)
       endif
       if (f_dafsd_latg(1:1)/= 'x') then
-         worke(:,:,1:nfsd_hist) = d_afsd_latg(:,:,1:nfsd_hist,iblk)/dt
+         worke(ilo:ihi,jlo:jhi,1:nfsd_hist)= d_afsd_latg(ilo:ihi,jlo:jhi,1:nfsd_hist,iblk)/dt
          call accum_hist_field(n_dafsd_latg-n3Dacum, iblk, nfsd_hist, worke, a3Df)
       endif
       if (f_dafsd_latm(1:1)/= 'x') then
-         worke(:,:,1:nfsd_hist) = d_afsd_latm(:,:,1:nfsd_hist,iblk)/dt
+         worke(ilo:ihi,jlo:jhi,1:nfsd_hist)= d_afsd_latm(ilo:ihi,jlo:jhi,1:nfsd_hist,iblk)/dt
          call accum_hist_field(n_dafsd_latm-n3Dacum, iblk, nfsd_hist, worke, a3Df)
       endif
       if (f_dafsd_wave(1:1)/= 'x') then
-         worke(:,:,1:nfsd_hist) = d_afsd_wave(:,:,1:nfsd_hist,iblk)/dt
+         worke(ilo:ihi,jlo:jhi,1:nfsd_hist)= d_afsd_wave(ilo:ihi,jlo:jhi,1:nfsd_hist,iblk)/dt
          call accum_hist_field(n_dafsd_wave-n3Dacum, iblk, nfsd_hist, worke, a3Df)
       endif
       if (f_dafsd_weld(1:1)/= 'x') then
-         worke(:,:,1:nfsd_hist) = d_afsd_weld(:,:,1:nfsd_hist,iblk)/dt
+         worke(ilo:ihi,jlo:jhi,1:nfsd_hist)= d_afsd_weld(ilo:ihi,jlo:jhi,1:nfsd_hist,iblk)/dt
          call accum_hist_field(n_dafsd_weld-n3Dacum, iblk, nfsd_hist, worke, a3Df)
       endif
       endif ! a3Df allocated
@@ -497,12 +507,12 @@
       if (allocated(a4Df)) then
 
       if (f_afsdn(1:1) /= 'x') then
+         workd(:,:,:,:) = c0
          do n = 1, ncat_hist
          do k = 1, nfsd_hist
-         do j = 1, ny_block
-         do i = 1, nx_block
-            workd(i,j,k,n) = trcrn(i,j,nt_fsd+k-1,n,iblk) &
-                           * aicen(i,j,n,iblk)/floe_binwidth(k)
+         do j = jlo, jhi
+         do i = ilo, ihi
+            workd(i,j,k,n) = trcrn(i,j,nt_fsd+k-1,n,iblk) * aicen(i,j,n,iblk)/floe_binwidth(k)
          end do
          end do
          end do

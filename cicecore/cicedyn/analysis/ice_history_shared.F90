@@ -1083,17 +1083,15 @@
       real (kind=dbl_kind), intent(inout) :: &
          field(:,:,:,:)
 
+      logical (kind=log_kind), intent(in), optional :: &
+         mask(:,:)            ! defaults to tmask
+
       type (block) :: &
          this_block           ! block information for current block
 
       integer (kind=int_kind) :: i,j, ilo, ihi, jlo, jhi, ns, idns
 
       logical (kind=log_kind) :: wet
-
-      ! Where to accumulate.  Absent means tmask, which is what every caller
-      ! wanted before this argument existed.
-      logical (kind=log_kind), intent(in), optional :: &
-         mask(:,:)
 
       character(len=*), parameter :: subname = '(accum_hist_field_2D)'
 
@@ -1136,18 +1134,6 @@
 !     2009 Created by D. Bailey following POP
 !     2010 Generalized dimension of variables by N. Jeffery, E. Hunke
 
-! Accumulate the product of two fields without building it first.
-!
-! Writing the product as an actual argument -- accum_hist_field(n, iblk,
-! a(:,:,iblk)*b(:,:,iblk), a2D) -- makes the compiler evaluate it into a
-! temporary over the WHOLE block, nx_block by ny_block, pass that, and
-! discard it.  The loop below reads only ilo:ihi by jlo:jhi under tmask, so
-! most of that temporary is computed and never used: for a 10x12 block with
-! nghost=2 it is 224 products to read 120.
-!
-! Taking the two factors instead costs one extra argument and removes the
-! temporary, the fill loop and the wasted ghost-region arithmetic.
-
       subroutine accum_hist_field_2D_prod(id, iblk, a, b, field, mask)
 
       use ice_blocks, only: block, get_block
@@ -1166,17 +1152,15 @@
       real (kind=dbl_kind), intent(inout) :: &
          field(:,:,:,:)
 
+      logical (kind=log_kind), intent(in), optional :: &
+         mask(:,:)            ! defaults to tmask.
+
       type (block) :: &
          this_block           ! block information for current block
 
       integer (kind=int_kind) :: i,j, ilo, ihi, jlo, jhi, ns, idns
 
       logical (kind=log_kind) :: wet
-
-      ! Where to accumulate.  Absent means tmask, which is what every caller
-      ! wanted before this argument existed.
-      logical (kind=log_kind), intent(in), optional :: &
-         mask(:,:)
 
       character(len=*), parameter :: subname = '(accum_hist_field_2D_prod)'
 
@@ -1210,19 +1194,12 @@
 
 !=======================================================================
 !
-! The same for a field scaled by a constant, distinguished from the
-! two-field form by the rank of the second factor.  There is deliberately
-! no mirror form taking the scale first: a caller whose scale is on the
-! left swaps its two actuals, which is bit-for-bit because floating
-! multiplication is commutative and exactly rounded.
-
       subroutine accum_hist_field_2D_speed(id, iblk, a, b, field, mask)
 
-      ! sqrt(a*a + b*b), accumulated without building it first.
+      ! sqrt(a*a + b*b)
       !
-      ! ⚠ NOT in the generic interface: the argument list is the same shape as
-      ! accum_hist_field_2D_prod's, so the two cannot be resolved apart.  Call
-      ! it by name.
+      !  NOT in the generic interface: the argument list is the same shape as
+      ! accum_hist_field_2D_prod's
 
       use ice_blocks, only: block, get_block
       use ice_calendar, only: nstreams
@@ -1306,17 +1283,15 @@
       real (kind=dbl_kind), intent(inout) :: &
          field(:,:,:,:)
 
+      logical (kind=log_kind), intent(in), optional :: &
+         mask(:,:)            ! Defaults to tmask
+
       type (block) :: &
          this_block           ! block information for current block
 
       integer (kind=int_kind) :: i,j, ilo, ihi, jlo, jhi, ns, idns
 
       logical (kind=log_kind) :: wet
-
-      ! Where to accumulate.  Absent means tmask, which is what every caller
-      ! wanted before this argument existed.
-      logical (kind=log_kind), intent(in), optional :: &
-         mask(:,:)
 
       character(len=*), parameter :: subname = '(accum_hist_field_2D_mul)'
 
@@ -1372,17 +1347,15 @@
       real (kind=dbl_kind), intent(inout) :: &
          field(:,:,:,:,:)
 
+      logical (kind=log_kind), intent(in), optional :: &
+         mask(:,:)            ! Default to tmask
+
       type (block) :: &
          this_block           ! block information for current block
 
       integer (kind=int_kind) :: i,j,k, ilo, ihi, jlo, jhi, ns, idns
 
       logical (kind=log_kind) :: wet
-
-      ! Where to accumulate.  Absent means tmask, which is what every caller
-      ! wanted before this argument existed.
-      logical (kind=log_kind), intent(in), optional :: &
-         mask(:,:)
 
       character(len=*), parameter :: subname = '(accum_hist_field_3D)'
 
@@ -1450,17 +1423,15 @@
       real (kind=dbl_kind), intent(inout) :: &
          field(:,:,:,:,:,:)
 
+      logical (kind=log_kind), intent(in), optional :: &
+         mask(:,:)            ! default to tmassk
+
       type (block) :: &
          this_block           ! block information for current block
 
       integer (kind=int_kind) :: i,j,k,n,ilo, ihi, jlo, jhi, ns, idns
 
       logical (kind=log_kind) :: wet
-
-      ! Where to accumulate.  Absent means tmask, which is what every caller
-      ! wanted before this argument existed.
-      logical (kind=log_kind), intent(in), optional :: &
-         mask(:,:)
 
       character(len=*), parameter :: subname = '(accum_hist_field_4D)'
 

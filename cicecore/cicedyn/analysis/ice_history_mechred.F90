@@ -407,29 +407,27 @@
          if (allocated(a2D)) then
 
          if (f_alvl(1:1)/= 'x') &
-             call accum_hist_field(n_alvl,   iblk, &
-                                   aice(:,:,iblk) , trcr(:,:,nt_alvl,iblk), a2D)
+             call accum_hist_field(n_alvl    , iblk, aice(:,:,iblk)    , trcr(:,:,nt_alvl,iblk), a2D)
          if (f_vlvl(1:1)/= 'x') &
-             call accum_hist_field(n_vlvl,   iblk, &
-                                   vice(:,:,iblk) , trcr(:,:,nt_vlvl,iblk), a2D)
+             call accum_hist_field(n_vlvl    , iblk, vice(:,:,iblk)    , trcr(:,:,nt_vlvl,iblk), a2D)
          if (f_ardg(1:1)/= 'x') &
              worka(ilo:ihi,jlo:jhi) = c1 - trcr(ilo:ihi,jlo:jhi,nt_alvl,iblk)
-             call accum_hist_field(n_ardg, iblk, aice(:,:,iblk), worka, a2D)
-         if (f_vrdg(1:1)/= 'x') &
+             call accum_hist_field(n_ardg    , iblk, aice(:,:,iblk)    , worka                 , a2D)
+         if (f_vrdg(1:1)/= 'x')     &
              worka(ilo:ihi,jlo:jhi) = c1 - trcr(ilo:ihi,jlo:jhi,nt_vlvl,iblk)
-             call accum_hist_field(n_vrdg, iblk, vice(:,:,iblk), worka, a2D)
+             call accum_hist_field(n_vrdg    , iblk, vice(:,:,iblk)    , worka                 , a2D)
          if (f_dardg1dt(1:1)/= 'x') &
-             call accum_hist_field(n_dardg1dt,iblk, dardg1dt(:,:,iblk), a2D)
+             call accum_hist_field(n_dardg1dt, iblk, dardg1dt(:,:,iblk)                        , a2D)
          if (f_dardg2dt(1:1)/= 'x') &
-             call accum_hist_field(n_dardg2dt,iblk, dardg2dt(:,:,iblk), a2D)
+             call accum_hist_field(n_dardg2dt, iblk, dardg2dt(:,:,iblk)                        , a2D)
          if (f_dvirdgdt(1:1)/= 'x') &
-             call accum_hist_field(n_dvirdgdt,iblk, dvirdgdt(:,:,iblk), a2D)
+             call accum_hist_field(n_dvirdgdt, iblk, dvirdgdt(:,:,iblk)                        , a2D)
          if (f_opening(1:1) /= 'x') &
-             call accum_hist_field(n_opening, iblk, opening(:,:,iblk), a2D)
+             call accum_hist_field(n_opening , iblk, opening (:,:,iblk)                        , a2D)
 
          if (f_sirdgconc(1:1)/= 'x') &
              worka(ilo:ihi,jlo:jhi) = c1 - trcr(ilo:ihi,jlo:jhi,nt_alvl,iblk)
-             call accum_hist_field(n_sirdgconc, iblk, aice(:,:,iblk), worka, a2D)
+             call accum_hist_field(n_sirdgconc , iblk, aice(:,:,iblk), worka, a2D)
 
          if (f_sirdgthick(1:1)/= 'x') then
              worka(ilo:ihi,jlo:jhi) = c1 - trcr(ilo:ihi,jlo:jhi,nt_vlvl,iblk)
@@ -442,42 +440,31 @@
          if (allocated(a3Dc)) then
 
          if (f_ardgn(1:1)/= 'x') then
-            workc(:,:,1:ncat_hist) = aicen(:,:,1:ncat_hist,iblk) &
-            * (c1 - trcrn(:,:,nt_alvl,1:ncat_hist,iblk))
+            workc(:,:,1:ncat_hist) = aicen(:,:,1:ncat_hist,iblk) * (c1 - trcrn(:,:,nt_alvl,1:ncat_hist,iblk))
             call accum_hist_field(n_ardgn-n2D, iblk, ncat_hist, workc, a3Dc)
          endif
          if (f_vrdgn(1:1)/= 'x') then
-            workc(:,:,1:ncat_hist) = vicen(:,:,1:ncat_hist,iblk) &
-            * (c1 - trcrn(:,:,nt_vlvl,1:ncat_hist,iblk))
+            workc(:,:,1:ncat_hist) = vicen(:,:,1:ncat_hist,iblk) * (c1 - trcrn(:,:,nt_vlvl,1:ncat_hist,iblk))
             call accum_hist_field(n_vrdgn-n2D, iblk, ncat_hist, workc, a3Dc)
          endif
          if (f_dardg1ndt(1:1)/= 'x') &
-             call accum_hist_field(n_dardg1ndt-n2D, iblk, ncat_hist, &
-                                   dardg1ndt(:,:,1:ncat_hist,iblk), a3Dc)
+             call accum_hist_field(n_dardg1ndt-n2D, iblk, ncat_hist, dardg1ndt(:,:,1:ncat_hist,iblk), a3Dc)
          if (f_dardg2ndt(1:1)/= 'x') &
-             call accum_hist_field(n_dardg2ndt-n2D, iblk, ncat_hist, &
-                                   dardg2ndt(:,:,1:ncat_hist,iblk), a3Dc)
+             call accum_hist_field(n_dardg2ndt-n2D, iblk, ncat_hist, dardg2ndt(:,:,1:ncat_hist,iblk), a3Dc)
          if (f_dvirdgndt(1:1)/= 'x') &
-             call accum_hist_field(n_dvirdgndt-n2D, iblk, ncat_hist, &
-                                   dvirdgndt(:,:,1:ncat_hist,iblk), a3Dc)
-         if (f_krdgn(1:1)/= 'x') &
-             call accum_hist_field(n_krdgn-n2D, iblk, ncat_hist, &
-                                   krdgn(:,:,1:ncat_hist,iblk), a3Dc)
-         if (f_aparticn(1:1)/= 'x') &
-             call accum_hist_field(n_aparticn-n2D, iblk, ncat_hist, &
-                                   aparticn(:,:,1:ncat_hist,iblk), a3Dc)
-         if (f_aredistn(1:1)/= 'x') &
-             call accum_hist_field(n_aredistn-n2D, iblk, ncat_hist, &
-                                   aredistn(:,:,1:ncat_hist,iblk), a3Dc)
-         if (f_vredistn(1:1)/= 'x') &
-             call accum_hist_field(n_vredistn-n2D, iblk, ncat_hist, &
-                                   vredistn(:,:,1:ncat_hist,iblk), a3Dc)
-         if (f_araftn(1:1)/= 'x') &
-             call accum_hist_field(n_araftn-n2D, iblk, ncat_hist, &
-                                   araftn(:,:,1:ncat_hist,iblk), a3Dc)
-         if (f_vraftn(1:1)/= 'x') &
-             call accum_hist_field(n_vraftn-n2D, iblk, ncat_hist, &
-                                   vraftn(:,:,1:ncat_hist,iblk), a3Dc)
+             call accum_hist_field(n_dvirdgndt-n2D, iblk, ncat_hist, dvirdgndt(:,:,1:ncat_hist,iblk), a3Dc)
+         if (f_krdgn(1:1)/= 'x')     &
+             call accum_hist_field(n_krdgn-n2D    , iblk, ncat_hist, krdgn    (:,:,1:ncat_hist,iblk), a3Dc)
+         if (f_aparticn(1:1)/= 'x')  &
+             call accum_hist_field(n_aparticn-n2D , iblk, ncat_hist, aparticn (:,:,1:ncat_hist,iblk), a3Dc)
+         if (f_aredistn(1:1)/= 'x')  &
+             call accum_hist_field(n_aredistn-n2D , iblk, ncat_hist, aredistn (:,:,1:ncat_hist,iblk), a3Dc)
+         if (f_vredistn(1:1)/= 'x')  &
+             call accum_hist_field(n_vredistn-n2D , iblk, ncat_hist, vredistn (:,:,1:ncat_hist,iblk), a3Dc)
+         if (f_araftn(1:1)/= 'x')    &
+             call accum_hist_field(n_araftn-n2D   , iblk, ncat_hist, araftn   (:,:,1:ncat_hist,iblk), a3Dc)
+         if (f_vraftn(1:1)/= 'x')    &
+             call accum_hist_field(n_vraftn-n2D   , iblk, ncat_hist, vraftn   (:,:,1:ncat_hist,iblk), a3Dc)
          endif ! allocated(a3Dc)
 
       end subroutine accum_hist_mechred
