@@ -807,10 +807,10 @@ forcing_nml
    "", "``true``", "include frazil water/salt fluxes in ocn fluxes", ""
    "``vapor_flux_correction``", "logical", "water vapor deposition/sublimation correction associated with an assumed temperature", "``.false.``"
    "``wave_spec_file``", "string", "data file containing wave spectrum forcing data", ""
-   "``wave_spec_type``", "``constant``", "wave data file is provided, constant wave spectrum, for testing", "``none``"
+   "``wave_spec_type``", "``constant``", "wave data file is provided, sea surface built using fixed wave phases, bit-for-bit reproducible", "``none``"
    "", "``none``", "no wave data provided, no wave-ice interactions", ""
    "", "``profile``", "no wave data file is provided, use fixed dummy wave spectrum, for testing", ""
-   "", "``random``", "wave data file is provided, wave spectrum generated using random number", ""
+   "", "``random``", "wave data file is provided, sea surface built using random wave phases, repeated until the fracture converges", ""
    "``ycycle``", "integer", "number of years in forcing data cycle", "1"
    "", "", "", ""
 
