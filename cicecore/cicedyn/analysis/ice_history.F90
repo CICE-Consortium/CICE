@@ -2800,11 +2800,11 @@
          endif
 
          if (f_simass(1:1) /= 'x') then
-           call accum_hist_field(n_simass, iblk, rho_ice(:,:)*vice(:,:,iblk), a2D)
+           call accum_hist_field(n_simass, iblk, rhoi*vice(:,:,iblk), a2D)
          endif
 
          if (f_sisaltmass(1:1) /= 'x') then
-           call accum_hist_field(n_sisaltmass, iblk, rho_ice(:,:)*sal_ice(:,:)*vice(:,:,iblk), a2D)
+           call accum_hist_field(n_sisaltmass, iblk, rhoi*sal_ice(:,:)*vice(:,:,iblk), a2D)
          endif
 
          if (f_sisali(1:1) /= 'x') then
@@ -2883,9 +2883,9 @@
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
-              worka(i,j) = (rho_ice(i,j)*p5*(vice(i+1,j,iblk)+vice(i,j,iblk))*dyU(i,j,iblk) &
-                         + rhos*p5*(vsno(i+1,j,iblk)+vsno(i,j,iblk))*dyU(i,j,iblk)) &
-                         *  p5*(uvel(i,j-1,iblk)+uvel(i,j,iblk))
+              worka(i,j) = (rhoi*p5*(vice(i+1,j,iblk)+vice(i,j,iblk))*dyU(i,j,iblk) &
+                          + rhos*p5*(vsno(i+1,j,iblk)+vsno(i,j,iblk))*dyU(i,j,iblk)) &
+                          * p5*(uvel(i,j-1,iblk)+uvel(i,j,iblk))
            enddo
            enddo
            call accum_hist_field(n_sidmasstranx, iblk, worka(:,:), a2D)
@@ -2895,9 +2895,9 @@
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
-              worka(i,j) = (rho_ice(i,j)*p5*(vice(i,j+1,iblk)+vice(i,j,iblk))*dxU(i,j,iblk) &
-                         + rhos*p5*(vsno(i,j+1,iblk)+vsno(i,j,iblk))*dxU(i,j,iblk)) &
-                         *  p5*(vvel(i-1,j,iblk)+vvel(i,j,iblk))
+              worka(i,j) = (rhoi*p5*(vice(i,j+1,iblk)+vice(i,j,iblk))*dxU(i,j,iblk) &
+                          + rhos*p5*(vsno(i,j+1,iblk)+vsno(i,j,iblk))*dxU(i,j,iblk)) &
+                          * p5*(vvel(i-1,j,iblk)+vvel(i,j,iblk))
            enddo
            enddo
            call accum_hist_field(n_sidmasstrany, iblk, worka(:,:), a2D)
@@ -2956,23 +2956,23 @@
          endif
 
          if (f_sidmassth(1:1) /= 'x') then
-           call accum_hist_field(n_sidmassth, iblk, rho_ice(:,:)*dvidtt(:,:,iblk), a2D)
+           call accum_hist_field(n_sidmassth, iblk, rhoi*dvidtt(:,:,iblk), a2D)
          endif
 
          if (f_sidmassdyn(1:1) /= 'x') then
-           call accum_hist_field(n_sidmassdyn, iblk, rho_ice(:,:)*dvidtd(:,:,iblk), a2D)
+           call accum_hist_field(n_sidmassdyn, iblk, rhoi*dvidtd(:,:,iblk), a2D)
          endif
 
          if (f_sidmassgrowthwat(1:1) /= 'x') then
-           call accum_hist_field(n_sidmassgrowthwat, iblk, rho_ice(:,:)*frazil(:,:,iblk)/dt, a2D)
+           call accum_hist_field(n_sidmassgrowthwat, iblk, rhoi*frazil(:,:,iblk)/dt, a2D)
          endif
 
          if (f_sidmassgrowthbot(1:1) /= 'x') then
-           call accum_hist_field(n_sidmassgrowthbot, iblk, rho_ice(:,:)*congel(:,:,iblk)/dt, a2D)
+           call accum_hist_field(n_sidmassgrowthbot, iblk, rhoi*congel(:,:,iblk)/dt, a2D)
          endif
 
          if (f_sidmassgrowthsi(1:1) /= 'x') then
-           call accum_hist_field(n_sidmassgrowthsi, iblk, rho_ice(:,:)*snoice(:,:,iblk)/dt, a2D)
+           call accum_hist_field(n_sidmassgrowthsi, iblk, rhoi*snoice(:,:,iblk)/dt, a2D)
          endif
 
          if (f_sisndmasssi(1:1) /= 'x') then
@@ -2980,19 +2980,19 @@
          endif
 
          if (f_sidmassevapsubl(1:1) /= 'x') then
-           call accum_hist_field(n_sidmassevapsubl, iblk, rho_ice(:,:)*evapi(:,:,iblk), a2D)
+           call accum_hist_field(n_sidmassevapsubl, iblk, -evapi(:,:,iblk), a2D)
          endif
 
          if (f_sidmassmelttop(1:1) /= 'x') then
-           call accum_hist_field(n_sidmassmelttop, iblk, -rho_ice(:,:)*meltt(:,:,iblk)/dt, a2D)
+           call accum_hist_field(n_sidmassmelttop, iblk, -rhoi*meltt(:,:,iblk)/dt, a2D)
          endif
 
          if (f_sidmassmeltbot(1:1) /= 'x') then
-           call accum_hist_field(n_sidmassmeltbot, iblk, -rho_ice(:,:)*meltb(:,:,iblk)/dt, a2D)
+           call accum_hist_field(n_sidmassmeltbot, iblk, -rhoi*meltb(:,:,iblk)/dt, a2D)
          endif
 
          if (f_sidmassmeltlat(1:1) /= 'x') then
-           call accum_hist_field(n_sidmassmeltlat, iblk, -rho_ice(:,:)*meltl(:,:,iblk)/dt, a2D)
+           call accum_hist_field(n_sidmassmeltlat, iblk, -rhoi*meltl(:,:,iblk)/dt, a2D)
          endif
 
          if (f_sisndmasssubl(1:1) /= 'x') then
@@ -3069,7 +3069,7 @@
            do i = ilo, ihi
               if (aice(i,j,iblk) > puny) then
                  worka(i,j) = max(((rho_ocn(i,j)-rho_ice(i,j))*vice(i,j,iblk)-rhos*vsno(i,j,iblk)) &
-                                  / rho_ocn(i,j), c0)
+                                  / rho_ocn(i,j),c0)
               endif
            enddo
            enddo

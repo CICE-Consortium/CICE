@@ -84,6 +84,7 @@ contains
     character(len=char_len_long)     :: stream_varname
     character(len=char_len_long)     :: stream_mapalgo
     character(len=char_len_long)     :: stream_taxmode
+    real(kind=dbl_kind)              :: stream_dtlimit
     integer(kind=int_kind)           :: stream_yearfirst   ! first year in stream to use
     integer(kind=int_kind)           :: stream_yearlast    ! last year in stream to use
     integer(kind=int_kind)           :: stream_yearalign   ! align stream_year_first
@@ -92,6 +93,7 @@ contains
     character(*),parameter           :: subName = "('ice_prescribed_init')"
     character(*),parameter           :: F00 = "('(ice_prescribed_init) ',4a)"
     character(*),parameter           :: F01 = "('(ice_prescribed_init) ',a,i0)"
+    character(*),parameter           :: F02 = "('(ice_prescribed_init) ',a,d8.4)"
     !--------------------------------
 
     namelist /ice_prescribed_nml/ &
@@ -101,6 +103,7 @@ contains
          stream_datafiles,              &
          stream_mapalgo,                &
          stream_taxmode,                &
+         stream_dtlimit,                &
          stream_yearalign,              &
          stream_yearfirst ,             &
          stream_yearlast
@@ -117,6 +120,7 @@ contains
     stream_datafiles(:) = ' '
     stream_mapalgo      = 'bilinear'
     stream_taxmode      = 'cycle'
+    stream_dtlimit      = 1.5_dbl_kind
 
     ! read namelist on master task
     if (my_task == master_task) then
@@ -148,6 +152,7 @@ contains
        call broadcast_scalar(stream_meshfile  , master_task)
        call broadcast_scalar(stream_mapalgo   , master_task)
        call broadcast_scalar(stream_taxmode   , master_task)
+       call broadcast_scalar(stream_dtlimit   , master_task)
        call broadcast_scalar(stream_varname   , master_task)
        call mpi_bcast(stream_dataFiles, len(stream_datafiles(1))*NFilesMaximum, MPI_CHARACTER, 0, MPI_COMM_ICE, ierr)
 
@@ -166,6 +171,7 @@ contains
           write(nu_diag,F00) '  stream_varname   = ',trim(stream_varname)
           write(nu_diag,F00) '  stream_mapalgo   = ',trim(stream_mapalgo)
           write(nu_diag,F00) '  stream_taxmode   = ',trim(stream_taxmode)
+          write(nu_diag,F02) '  stream_dtlimit   = ',stream_dtlimit
           do n = 1,nFile
              write(nu_diag,F00) '  stream_datafiles   = ',trim(stream_dataFiles(n))
           end do
@@ -195,7 +201,7 @@ contains
             stream_yearAlign    = stream_yearAlign ,         &
             stream_offset       = 0,                         &
             stream_taxmode      = trim(stream_taxmode),      &
-            stream_dtlimit      = 1.5_dbl_kind,              &
+            stream_dtlimit      = stream_dtlimit,            &
             stream_tintalgo     = 'linear',                  &
             rc                  = rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
