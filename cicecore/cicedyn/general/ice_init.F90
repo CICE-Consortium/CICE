@@ -45,6 +45,12 @@
 
       public :: input_data, init_state, set_state_var
 
+      ! standard interface for frequency and run length namelist settings
+      interface nml_freq_char
+         module procedure nml_freq_char_scalar, &
+                          nml_freq_char_array
+      end interface
+
 !=======================================================================
 
       contains
@@ -71,10 +77,10 @@
           max_nstrm
       use ice_calendar, only: &
           year_init, month_init, day_init, sec_init, &
-          istep0, histfreq, histfreq_n, histfreq_base, &
-          dumpfreq, dumpfreq_n, diagfreq, dumpfreq_base, &
+          istep0, histfreq_unit, histfreq_n, histfreq_base, &
+          dumpfreq_unit, dumpfreq_n, diagfreq_n, dumpfreq_base, &
           npt, dt, ndtd, days_per_year, use_leap_years, &
-          write_ic, dump_last, npt_unit, write_histrest
+          write_ic, dump_last, runlen_unit, runlen_n, write_histrest, lower_case
       use ice_arrays_column, only: oceanmixed_ice
       use ice_restart_column, only: &
           restart_age, restart_FY, restart_lvl, &
@@ -184,6 +190,13 @@
       real (kind=dbl_kind)    :: Cf, ksno, puny, ice_ref_salinity, Tocnfrz
       real (kind=dbl_kind), parameter :: ice_init_spval = -999._dbl_kind
 
+      ! deprecated frequency and run length namelist names, the new names are
+      ! ice_calendar variables (npt is the ice_calendar run length in timesteps)
+      character (len=2) :: &
+         npt_unit, histfreq(max_nstrm), dumpfreq(max_nstrm)
+      integer (kind=int_kind) :: &
+         diagfreq
+
       character (len=char_len) :: abort_list
       character (len=char_len)      :: nml_name ! namelist name
       character (len=char_len_long) :: tmpstr2
@@ -195,26 +208,28 @@
       !-----------------------------------------------------------------
 
       namelist /setup_nml/ &
-        days_per_year,  use_leap_years, istep0,          npt_unit,      &
-        dt,             npt,            ndtd,            numin,         &
+        days_per_year,  use_leap_years, istep0,          runlen_unit,   &
+        dt,             runlen_n,       ndtd,            numin,         &
         runtype,        runid,          bfbflag,         numax,         &
         ice_ic,         restart,        restart_dir,     restart_file,  &
         restart_ext,    use_restart_time, restart_format, lcdf64,       &
         restart_root,   restart_stride, restart_iotasks, restart_rearranger, &
         restart_deflate, restart_chunksize, restart_mod, write_histrest,&
-        pointer_file,   dumpfreq,       dumpfreq_n,      dump_last,     &
-        diagfreq,       diag_type,      diag_file,       history_format,&
+        pointer_file,   dumpfreq_unit,  dumpfreq_n,      dump_last,     &
+        diagfreq_n,     diag_type,      diag_file,       history_format,&
         history_root,   history_stride, history_iotasks, history_rearranger, &
         hist_time_axis,                                                 &
         print_global,   print_points,   latpnt,          lonpnt,        &
-        debug_forcing,  histfreq,       histfreq_n,      hist_avg,      &
+        debug_forcing,  histfreq_unit,  histfreq_n,      hist_avg,      &
         hist_suffix,    history_deflate, history_chunksize,             &
         history_dir,    history_file,   history_precision, cpl_bgc,     &
         histfreq_base,  dumpfreq_base,  timer_stats,     memory_stats,  &
         conserv_check,  debug_model,    debug_model_step,               &
         debug_model_i,  debug_model_j,  debug_model_iblk, debug_model_task, &
         year_init,      month_init,     day_init,        sec_init,      &
-        write_ic,       incond_dir,     incond_file,     version_name
+        write_ic,       incond_dir,     incond_file,     version_name,  &
+        npt_unit,       npt,            diagfreq,        histfreq,      & ! deprecated
+        dumpfreq                                                          ! deprecated
 
       namelist /grid_nml/ &
         grid_format,    grid_type,       grid_file,     kmt_file,       &
@@ -328,9 +343,14 @@
 #endif
       numin = 11             ! min allowed unit number
       numax = 99             ! max allowed unit number
-      npt = 99999            ! total number of time steps (dt)
-      npt_unit = '1'         ! units of npt 'y', 'm', 'd', 's', '1'
-      diagfreq = 24          ! how often diag output is written
+      ! frequency and run length settings are blank or -99 here, so that the
+      ! deprecated names can be detected, the defaults are given to nml_freq_int and nml_freq_char
+      runlen_unit = ' '      ! units of runlen_n 'y', 'm', 'd', 'h', 's', '1' (default '1')
+      runlen_n = -99         ! run length in runlen_unit (default 99999)
+      diagfreq_n = -99       ! diag output every diagfreq_n timesteps (default 24)
+      npt_unit = ' '         ! deprecated, runlen_unit
+      npt = -99              ! deprecated, runlen_n
+      diagfreq = -99         ! deprecated, diagfreq_n
       debug_model  = .false. ! debug output
       debug_model_step = 0   ! debug model after this step number
       debug_model_i = -1     ! debug model local i index
@@ -344,12 +364,9 @@
       bfbflag = 'off'        ! off = optimized
       diag_type = 'stdout'
       diag_file = 'ice_diag.d'
-      histfreq(:) = 'x'
-      histfreq(1) = '1'      ! output frequency option for different streams
-      histfreq(2) = 'h'      ! output frequency option for different streams
-      histfreq(3) = 'd'      ! output frequency option for different streams
-      histfreq(4) = 'm'      ! output frequency option for different streams
-      histfreq(5) = 'y'      ! output frequency option for different streams
+      histfreq_unit(:) = ' ' ! output frequency option for different streams
+                             ! (default '1','h','d','m','y','x',...)
+      histfreq(:) = ' '      ! deprecated, histfreq_unit
       histfreq_n(:) = 1      ! output frequency
       histfreq_base(:) = 'zero' ! output frequency reference date
       hist_avg(:) = .true.   ! if true, write time-averages (not snapshots)
@@ -370,11 +387,10 @@
       cpl_bgc = .false.      ! couple bgc thru driver
       incond_dir = history_dir ! write to history dir for default
       incond_file = 'iceh_ic'! file prefix
-      dumpfreq(:) = 'x'         ! restart frequency option
+      dumpfreq_unit(:) = ' '    ! restart frequency option (default 'y','x',...)
+      dumpfreq(:) = ' '         ! deprecated, dumpfreq_unit
       dumpfreq_n(:) = 1         ! restart frequency
       dumpfreq_base(:) = 'init' ! restart frequency reference date
-      dumpfreq(1) = 'y'         ! restart frequency option
-      dumpfreq_n(1) = 1         ! restart frequency
       dump_last = .false.    ! write restart on last time step
       restart_dir  = './'    ! write to executable dir for default
       restart_file = 'iced'  ! restart file name prefix
@@ -974,6 +990,9 @@
       call broadcast_scalar(npt,                  master_task)
       call broadcast_scalar(npt_unit,             master_task)
       call broadcast_scalar(diagfreq,             master_task)
+      call broadcast_scalar(runlen_n,             master_task)
+      call broadcast_scalar(runlen_unit,          master_task)
+      call broadcast_scalar(diagfreq_n,           master_task)
       call broadcast_scalar(debug_model,          master_task)
       call broadcast_scalar(debug_model_step,     master_task)
       call broadcast_scalar(debug_model_i,        master_task)
@@ -989,8 +1008,10 @@
       call broadcast_scalar(diag_file,            master_task)
       do n = 1, max_nstrm
          call broadcast_scalar(histfreq(n),       master_task)
+         call broadcast_scalar(histfreq_unit(n),  master_task)
          call broadcast_scalar(histfreq_base(n),  master_task)
          call broadcast_scalar(dumpfreq(n),       master_task)
+         call broadcast_scalar(dumpfreq_unit(n),  master_task)
          call broadcast_scalar(dumpfreq_base(n),  master_task)
          call broadcast_scalar(hist_suffix(n),    master_task)
       enddo
@@ -1845,6 +1866,30 @@
          abort_list = trim(abort_list)//":22"
       endif
 
+      ! run length and history, restart and diagnostic frequencies:
+      ! deprecated names, defaults, lower case and checks
+
+      call nml_freq_int ('npt'     , npt     , 'runlen_n'   , runlen_n   , 99999, abort_list)
+      call nml_freq_int ('diagfreq', diagfreq, 'diagfreq_n' , diagfreq_n , 24   , abort_list)
+      call nml_freq_char('npt_unit', npt_unit, 'runlen_unit', runlen_unit, '1'  , abort_list)
+      call nml_freq_char('histfreq', histfreq, 'histfreq_unit', histfreq_unit, &
+                         (/'1','h','d','m','y',('x',n=6,max_nstrm)/), abort_list)
+      call nml_freq_char('dumpfreq', dumpfreq, 'dumpfreq_unit', dumpfreq_unit, &
+                         (/'y',('x',n=2,max_nstrm)/), abort_list)
+      ! run length in timesteps, for drivers that do not call calc_timesteps
+      npt = runlen_n
+      runlen_unit = lower_case(runlen_unit)
+      histfreq_unit(:) = lower_case(histfreq_unit(:))
+      dumpfreq_unit(:) = lower_case(dumpfreq_unit(:))
+
+      if (len_trim(runlen_unit) /= 1 .or. scan(runlen_unit(1:1),'ymdhs1') /= 1) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: bad value for runlen_unit: '//trim(runlen_unit)
+            write(nu_diag,*) subname//' ERROR:   allowed values: y,m,d,h,s,1'
+         endif
+         abort_list = trim(abort_list)//":72"
+      endif
+
       do n = 1,max_nstrm
          if (histfreq_base(n) /= 'init' .and. histfreq_base(n) /= 'zero') then
             write (nu_diag,*) subname//' ERROR: bad value for histfreq_base, allowed values: init, zero: '//trim(histfreq_base(n))
@@ -1856,13 +1901,21 @@
             abort_list = trim(abort_list)//":25"
          endif
 
-         if (.not.(scan(dumpfreq(n)(1:1),'ymdhx1YMDHX') == 1 .and. (dumpfreq(n)(2:2) == '1' .or. dumpfreq(n)(2:2) == ' '))) then
+         if (.not.(scan(dumpfreq_unit(n)(1:1),'ymdhx1') == 1 .and. &
+                   (dumpfreq_unit(n)(2:2) == '1' .or. dumpfreq_unit(n)(2:2) == ' '))) then
             if (my_task == master_task) then
-               write(nu_diag,*) subname//' WARNING: unrecognized dumpfreq=', trim(dumpfreq(n))
-               write(nu_diag,*) subname//' WARNING:   No restarts files will be written for this stream'
-               write(nu_diag,*) subname//' WARNING:   Allowed values : y,m,d,h,x,1 followed by an optional 1'
+               write(nu_diag,*) subname//' ERROR: bad value for dumpfreq_unit: '//trim(dumpfreq_unit(n))
+               write(nu_diag,*) subname//' ERROR:   allowed values: y,m,d,h,x,1, optionally followed by 1'
             endif
-            dumpfreq(n) = 'x'
+            abort_list = trim(abort_list)//":73"
+         endif
+
+         if (len_trim(histfreq_unit(n)) /= 1 .or. scan(histfreq_unit(n)(1:1),'ymdhn1x') /= 1) then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' ERROR: bad value for histfreq_unit: '//trim(histfreq_unit(n))
+               write(nu_diag,*) subname//' ERROR:   allowed values: y,m,d,h,n,1,x'
+            endif
+            abort_list = trim(abort_list)//":74"
          endif
       enddo
 
@@ -2716,9 +2769,9 @@
          write(nu_diag,1021) ' day_init         = ', day_init
          write(nu_diag,1021) ' sec_init         = ', sec_init
          write(nu_diag,1021) ' istep0           = ', istep0
-         write(nu_diag,1031) ' npt_unit         = ', trim(npt_unit)
-         write(nu_diag,1021) ' npt              = ', npt
-         write(nu_diag,1021) ' diagfreq         = ', diagfreq
+         write(nu_diag,1031) ' runlen_unit      = ', trim(runlen_unit)
+         write(nu_diag,1021) ' runlen_n         = ', runlen_n
+         write(nu_diag,1021) ' diagfreq_n       = ', diagfreq_n
          write(nu_diag,1011) ' print_global     = ', print_global
          write(nu_diag,1011) ' print_points     = ', print_points
          write(nu_diag,1011) ' debug_model      = ', debug_model
@@ -2733,7 +2786,7 @@
          write(nu_diag,1021) ' numin            = ', numin
          write(nu_diag,1021) ' numax            = ', numax
          write(nu_diag,1011) ' grid_outfile     = ', grid_outfile
-         write(nu_diag,1033) ' histfreq         = ', histfreq(1:max_nstrm-1)
+         write(nu_diag,1033) ' histfreq_unit    = ', histfreq_unit(1:max_nstrm-1)
          write(nu_diag,1023) ' histfreq_n       = ', histfreq_n(1:max_nstrm-1)
          write(nu_diag,1033) ' histfreq_base    = ', histfreq_base(1:max_nstrm-1)
          write(nu_diag,1013) ' hist_avg         = ', hist_avg(1:max_nstrm-1)
@@ -2753,7 +2806,7 @@
             write(nu_diag,1039) ' Initial condition will be written in ', &
                                trim(incond_dir)
          endif
-         write(nu_diag,1033) ' dumpfreq         = ', dumpfreq(1:max_nstrm-1)
+         write(nu_diag,1033) ' dumpfreq_unit    = ', dumpfreq_unit(1:max_nstrm-1)
          write(nu_diag,1023) ' dumpfreq_n       = ', dumpfreq_n(1:max_nstrm-1)
          write(nu_diag,1033) ' dumpfreq_base    = ', dumpfreq_base(1:max_nstrm-1)
          write(nu_diag,1011) ' dump_last        = ', dump_last
@@ -3784,6 +3837,120 @@
          file=__FILE__, line=__LINE__)
 
       end subroutine set_state_var
+
+!=======================================================================
+
+! Set a frequency or run length namelist setting.  val is the new namelist
+! variable.  On return it is the deprecated namelist value oldval (with a
+! warning) if that is set, else the new namelist value, else the default.
+! Setting both names is an error.  -99 is not set.
+
+      subroutine nml_freq_int(oldname, oldval, newname, val, default, abort_list)
+
+      character (len=*), intent(in) :: &
+         oldname, newname   ! deprecated and new namelist names
+
+      integer (kind=int_kind), intent(in) :: &
+         oldval         , & ! deprecated namelist value
+         default            ! default setting
+
+      integer (kind=int_kind), intent(inout) :: &
+         val                ! new namelist value, then the setting
+
+      character (len=*), intent(inout) :: &
+         abort_list         ! input_data error list
+
+      character(len=*), parameter :: subname = '(nml_freq_int)'
+
+      if (oldval /= -99 .and. val /= -99) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: both '//trim(oldname)//' and '//trim(newname)//' are set'
+         endif
+         abort_list = trim(abort_list)//":71"
+      elseif (oldval /= -99) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' WARNING: '//trim(oldname)//' is deprecated, use '//trim(newname)
+         endif
+         val = oldval
+      elseif (val == -99) then
+         val = default
+      endif
+
+      end subroutine nml_freq_int
+
+!=======================================================================
+
+! Character version of nml_freq_int, blank is not set
+
+      subroutine nml_freq_char_scalar(oldname, oldval, newname, val, default, abort_list)
+
+      character (len=*), intent(in) :: &
+         oldname, newname   ! deprecated and new namelist names
+
+      character (len=*), intent(in) :: &
+         oldval         , & ! deprecated namelist value
+         default            ! default setting
+
+      character (len=*), intent(inout) :: &
+         val                ! new namelist value, then the setting
+
+      character (len=*), intent(inout) :: &
+         abort_list         ! input_data error list
+
+      character(len=*), parameter :: subname = '(nml_freq_char_scalar)'
+
+      if (oldval /= ' ' .and. val /= ' ') then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: both '//trim(oldname)//' and '//trim(newname)//' are set'
+         endif
+         abort_list = trim(abort_list)//":71"
+      elseif (oldval /= ' ') then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' WARNING: '//trim(oldname)//' is deprecated, use '//trim(newname)
+         endif
+         val = oldval
+      elseif (val == ' ') then
+         val = default
+      endif
+
+      end subroutine nml_freq_char_scalar
+
+!=======================================================================
+
+! Array (history and restart stream) version of nml_freq_char_scalar,
+! elements that are not set get the default
+
+      subroutine nml_freq_char_array(oldname, oldval, newname, val, default, abort_list)
+
+      character (len=*), intent(in) :: &
+         oldname, newname   ! deprecated and new namelist names
+
+      character (len=*), dimension(:), intent(in) :: &
+         oldval         , & ! deprecated namelist values
+         default            ! default settings
+
+      character (len=*), dimension(:), intent(inout) :: &
+         val                ! new namelist values, then the settings
+
+      character (len=*), intent(inout) :: &
+         abort_list         ! input_data error list
+
+      character(len=*), parameter :: subname = '(nml_freq_char_array)'
+
+      if (any(oldval /= ' ') .and. any(val /= ' ')) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: both '//trim(oldname)//' and '//trim(newname)//' are set'
+         endif
+         abort_list = trim(abort_list)//":71"
+      elseif (any(oldval /= ' ')) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' WARNING: '//trim(oldname)//' is deprecated, use '//trim(newname)
+         endif
+         val = oldval
+      endif
+      where (val == ' ') val = default
+
+      end subroutine nml_freq_char_array
 
 !=======================================================================
 

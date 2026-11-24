@@ -22,7 +22,7 @@
       public :: accum_hist_pond, init_hist_pond_2D, init_hist_pond_3Dc
 
       !---------------------------------------------------------------
-      ! flags: write to output file if true or histfreq value
+      ! flags: write to output file if true or histfreq_unit value
       !---------------------------------------------------------------
 
       character (len=max_nstrm), public :: &
@@ -105,8 +105,9 @@
 
       subroutine init_hist_pond_2D
 
+      use ice_calendar, only: lower_case
       use ice_broadcast, only: broadcast_scalar
-      use ice_calendar, only: nstreams, histfreq
+      use ice_calendar, only: nstreams, histfreq_unit
       use ice_communicate, only: my_task, master_task
       use ice_history_shared, only: tstr2D, tcstr, define_hist_field
       use ice_fileunits, only: goto_nml
@@ -165,6 +166,35 @@
 
          close(nu_nml)
          call release_fileunit(nu_nml)
+
+         ! history frequency flags are not case sensitive
+         f_apondn = lower_case(f_apondn)
+         f_apeffn = lower_case(f_apeffn)
+         f_hpondn = lower_case(f_hpondn)
+         f_apond = lower_case(f_apond)
+         f_apond_ai = lower_case(f_apond_ai)
+         f_hpond = lower_case(f_hpond)
+         f_hpond_ai = lower_case(f_hpond_ai)
+         f_ipond = lower_case(f_ipond)
+         f_ipond_ai = lower_case(f_ipond_ai)
+         f_apeff = lower_case(f_apeff)
+         f_apeff_ai = lower_case(f_apeff_ai)
+         f_dpnd_flush = lower_case(f_dpnd_flush)
+         f_dpnd_expon = lower_case(f_dpnd_expon)
+         f_dpnd_freebd = lower_case(f_dpnd_freebd)
+         f_dpnd_initial = lower_case(f_dpnd_initial)
+         f_dpnd_dlid = lower_case(f_dpnd_dlid)
+         f_dpnd_melt = lower_case(f_dpnd_melt)
+         f_dpnd_ridge = lower_case(f_dpnd_ridge)
+         f_dpnd_flushn = lower_case(f_dpnd_flushn)
+         f_dpnd_exponn = lower_case(f_dpnd_exponn)
+         f_dpnd_freebdn = lower_case(f_dpnd_freebdn)
+         f_dpnd_initialn = lower_case(f_dpnd_initialn)
+         f_dpnd_dlidn = lower_case(f_dpnd_dlidn)
+         f_simpconc = lower_case(f_simpconc)
+         f_simpeffconc = lower_case(f_simpeffconc)
+         f_simpthick = lower_case(f_simpthick)
+         f_simprefrozen = lower_case(f_simprefrozen)
       endif
 
       if (.not. tr_pond) then
@@ -246,7 +276,7 @@
 
       ! 2D variables
       do ns = 1, nstreams
-      if (histfreq(ns) /= 'x') then
+      if (histfreq_unit(ns) /= 'x') then
 
       if (f_apond(1:1) /= 'x') &
          call define_hist_field(n_apond,"apond","1",tstr2D, tcstr, &
@@ -367,7 +397,7 @@
              c1, c0,                                                                                       &
              ns, f_simpthick, avg_ice_present='pond', mask_ice_free_points=.true.)
 
-      endif ! histfreq(ns) /= 'x'
+      endif ! histfreq_unit(ns) /= 'x'
       enddo ! nstreams
 
       endif ! tr_pond
@@ -378,7 +408,7 @@
 
       subroutine init_hist_pond_3Dc
 
-      use ice_calendar, only: nstreams, histfreq
+      use ice_calendar, only: nstreams, histfreq_unit
       use ice_history_shared, only: tstr3Dc, tcstr, define_hist_field
 
       integer (kind=int_kind) :: ns
@@ -394,7 +424,7 @@
 
       ! 3D (category) variables must be looped separately
       do ns = 1, nstreams
-        if (histfreq(ns) /= 'x') then
+        if (histfreq_unit(ns) /= 'x') then
 
         if (f_apondn(1:1) /= 'x') &
            call define_hist_field(n_apondn,"apondn","1",tstr3Dc, tcstr, &
@@ -442,7 +472,7 @@
                "none", c1, c0,                                       &
                ns, f_dpnd_dlidn)
 
-        endif ! histfreq(ns) /= 'x'
+        endif ! histfreq_unit(ns) /= 'x'
       enddo ! ns
 
       endif ! tr_pond

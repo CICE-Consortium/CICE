@@ -185,7 +185,7 @@
       call init_diags           ! initialize diagnostic output points
       call init_history_therm   ! initialize thermo history variables
       call init_history_dyn     ! initialize dynamic history variables
-      call calc_timesteps       ! update timestep counter if not using npt_unit="1"
+      call calc_timesteps       ! update timestep counter if not using runlen_unit="1"
       call icepack_init_radiation ! initialize icepack shortwave tables
 
       call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_zaero_out=tr_zaero)

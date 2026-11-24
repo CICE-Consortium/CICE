@@ -46,7 +46,7 @@
       subroutine init_restart_read(ice_ic)
 
       use ice_calendar, only: istep0, istep1, myear, mmonth, &
-                              mday, msec, npt
+                              mday, msec, npt, runlen_n
       use ice_domain_size, only: ncat
       use ice_read_write, only: ice_open
       character(len=char_len_long), intent(in), optional :: ice_ic
@@ -135,6 +135,7 @@
       ! if runid is bering then need to correct npt for istep0
       if (trim(runid) == 'bering') then
          npt = npt - istep0
+         runlen_n = runlen_n - istep0
       endif
 
       first_call = .false.

@@ -1,4 +1,4 @@
-npt_unit       = 'd'
-npt            = 90
-dumpfreq       = 'd'
+runlen_unit    = 'd'
+runlen_n       = 90
+dumpfreq_unit  = 'd'
 dumpfreq_n     = 30

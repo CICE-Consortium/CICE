@@ -1,5 +1,5 @@
-npt_unit       = 'd'
-npt            = 10
-dumpfreq       = 'd'
+runlen_unit    = 'd'
+runlen_n       = 10
+dumpfreq_unit  = 'd'
 dumpfreq_n     = 10
 

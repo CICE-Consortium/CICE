@@ -19,7 +19,7 @@
       public :: accum_hist_drag, init_hist_drag_2D
 
       !---------------------------------------------------------------
-      ! flags: write to output file if true or histfreq value
+      ! flags: write to output file if true or histfreq_unit value
       !---------------------------------------------------------------
 
       character (len=max_nstrm), public :: &
@@ -60,6 +60,7 @@
 
       subroutine init_hist_drag_2D
 
+      use ice_calendar, only: lower_case
       use ice_broadcast, only: broadcast_scalar
       use ice_calendar, only: nstreams
       use ice_communicate, only: my_task, master_task
@@ -119,6 +120,11 @@
 
          close(nu_nml)
          call release_fileunit(nu_nml)
+
+         ! history frequency flags are not case sensitive
+         f_Cdn_atm = lower_case(f_Cdn_atm)
+         f_Cdn_ocn = lower_case(f_Cdn_ocn)
+         f_drag = lower_case(f_drag)
       endif
 
       call broadcast_scalar (f_Cdn_atm, master_task)

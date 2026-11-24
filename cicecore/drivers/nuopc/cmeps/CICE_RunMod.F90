@@ -110,9 +110,9 @@
 
       use ice_constants, only: c3600
       use ice_boundary, only: ice_HaloUpdate
-      use ice_calendar, only: dt, dt_dyn, ndtd, diagfreq, write_restart, istep
+      use ice_calendar, only: dt, dt_dyn, ndtd, diagfreq_n, write_restart, istep
       use ice_calendar, only: idate, myear, mmonth, mday, msec, timesecs
-      use ice_calendar, only: calendar_sec2hms, write_history, nstreams, histfreq
+      use ice_calendar, only: calendar_sec2hms, write_history, nstreams, histfreq_unit
       use ice_diagnostics, only: init_mass_diags, runtime_diags, debug_model, debug_ice
       use ice_diagnostics_bgc, only: hbrine_diags, bgc_diags
       use ice_domain, only: halo_info, nblocks, num_set_boundary_flds
@@ -364,7 +364,7 @@
       !-----------------------------------------------------------------
 
          call ice_timer_start(timer_diags)  ! diagnostics
-         if (mod(istep,diagfreq) == 0) then
+         if (mod(istep,diagfreq_n) == 0) then
             call runtime_diags(dt)          ! log file
             if (skl_bgc .or. z_tracers)  call bgc_diags
             if (tr_brine) call hbrine_diags
@@ -398,7 +398,7 @@
          call ice_timer_stop(timer_readwrite)  ! reading/writing
          if (my_task == master_task) then
             do ns = 1,nstreams
-               if (write_history(ns) .and. histfreq(ns) .eq. 'h') then
+               if (write_history(ns) .and. histfreq_unit(ns) .eq. 'h') then
                   call calendar_sec2hms(msec,hh,mm,ss)
                   write(logmsg,'(6(i4,2x))')myear,mmonth,mday,hh,mm,ss
                   call ufs_logfhour(trim(logmsg),timesecs/c3600)

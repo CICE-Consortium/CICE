@@ -1,6 +1,6 @@
-npt            = 2
-npt_unit       = 'd'
-dumpfreq       = 'd'
+runlen_n       = 2
+runlen_unit    = 'd'
+dumpfreq_unit  = 'd'
 dumpfreq_n     = 2
 dumpfreq_base  = 'init'
 runtype        = 'continue'

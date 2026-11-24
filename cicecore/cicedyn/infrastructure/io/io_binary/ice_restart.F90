@@ -45,7 +45,7 @@
 
       subroutine init_restart_read(ice_ic)
 
-      use ice_calendar, only: istep0, istep1, timesecs, npt, myear, &
+      use ice_calendar, only: istep0, istep1, timesecs, npt, runlen_n, myear, &
           set_date_from_timesecs
       use ice_dyn_shared, only: kdyn
       use ice_read_write, only: ice_open, ice_open_ext
@@ -366,6 +366,7 @@
       ! if runid is bering then need to correct npt for istep0
       if (trim(runid) == 'bering') then
          npt = npt - istep0
+         runlen_n = runlen_n - istep0
       endif
 
       end subroutine init_restart_read

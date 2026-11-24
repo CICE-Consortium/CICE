@@ -1,4 +1,4 @@
-    histfreq       = 'm','h','x','x','x'
+    histfreq_unit  = 'm','h','x','x','x'
     histfreq_n     =  1,1,1,1,1
     histfreq_base  =  'zero','zero','zero','zero','zero'
     write_ic       = .true.

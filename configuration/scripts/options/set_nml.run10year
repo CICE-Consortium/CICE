@@ -1,6 +1,6 @@
-npt_unit       = 'y'
-npt            = 10
-dumpfreq       = 'y'
+runlen_unit    = 'y'
+runlen_n       = 10
+dumpfreq_unit  = 'y'
 dumpfreq_n     = 1
-diagfreq       = 24
+diagfreq_n     = 24
 

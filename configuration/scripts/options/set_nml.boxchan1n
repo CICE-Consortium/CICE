@@ -1,10 +1,10 @@
 days_per_year = 360
 use_leap_years = .false.
-npt_unit = 'd'
-npt = 5
+runlen_unit = 'd'
+runlen_n = 5
 ice_ic = 'internal'
 restart_ext = .true.
-histfreq       = 'd','1','x','x','x'
+histfreq_unit  = 'd','1','x','x','x'
 grid_type      = 'rectangular'
 kmt_type       = 'channel_onenorth'
 dxrect         = 16.e5

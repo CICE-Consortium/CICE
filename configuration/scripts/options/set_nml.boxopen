@@ -1,8 +1,8 @@
-npt_unit       = '1'
-npt = 48
+runlen_unit    = '1'
+runlen_n = 48
 ice_ic   = 'internal'
 use_leap_years = .false.
-histfreq       = 'd','x','x','x','x'
+histfreq_unit  = 'd','x','x','x','x'
 grid_type      = 'rectangular'
 dxrect         = 16.e5
 dyrect         = 16.e5

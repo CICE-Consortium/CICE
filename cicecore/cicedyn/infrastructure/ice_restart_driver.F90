@@ -282,7 +282,7 @@
 
       use ice_boundary, only: ice_HaloUpdate_stress
       use ice_blocks, only: nghost, nx_block, ny_block, ns_boundary_type
-      use ice_calendar, only: istep0, npt, calendar
+      use ice_calendar, only: istep0, npt, runlen_n, calendar
       use ice_domain, only: nblocks, halo_info
       use ice_domain_size, only: nilyr, nslyr, ncat, &
           max_blocks
@@ -724,6 +724,7 @@
       ! if runid is bering then need to correct npt for istep0
       if (trim(runid) == 'bering') then
          npt = npt - istep0
+         runlen_n = runlen_n - istep0
       endif
 
       !-----------------------------------------------------------------
@@ -808,7 +809,7 @@
       use ice_boundary, only: ice_HaloUpdate_stress
       use ice_broadcast, only: broadcast_scalar
       use ice_blocks, only: nghost, nx_block, ny_block, ns_boundary_type
-      use ice_calendar, only: istep0, istep1, timesecs, calendar, npt, &
+      use ice_calendar, only: istep0, istep1, timesecs, calendar, npt, runlen_n, &
           set_date_from_timesecs
       use ice_domain, only: nblocks, halo_info
       use ice_domain_size, only: nilyr, nslyr, ncat, nx_global, ny_global, &
@@ -1177,6 +1178,7 @@
       ! if runid is bering then need to correct npt for istep0
       if (trim(runid) == 'bering') then
          npt = npt - istep0
+         runlen_n = runlen_n - istep0
       endif
 
       end subroutine restartfile_v4

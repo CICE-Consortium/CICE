@@ -1,6 +1,6 @@
-npt_unit       = 'd'
-npt            = 3
-dumpfreq       = 'd'
+runlen_unit    = 'd'
+runlen_n       = 3
+dumpfreq_unit  = 'd'
 dumpfreq_n     = 2
 diag_type      = 'stdout'
 print_global   = .true.

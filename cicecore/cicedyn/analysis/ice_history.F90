@@ -6,10 +6,10 @@
 !   divu, shear, vort, sig1, sig2, sigP, trsig, mlt_onset,
 !   frz_onset, hisnap, aisnap
 !
-! Options for histfreq: '1','h','d','m','y','x', where x means that
+! Options for histfreq_unit: '1','h','d','m','y','x', where x means that
 !   output stream will not be used (recommended for efficiency).
 ! histfreq_n can be any nonnegative integer, where 0 means that the
-!   corresponding histfreq frequency will not be used.
+!   corresponding histfreq_unit frequency will not be used.
 ! The flags (f_<field>) can be set to '1','h','d','m','y' or 'x', where
 !   n means the field will not be written.  To output the same field at
 !   more than one frequency, for instance monthy and daily, set
@@ -62,9 +62,10 @@
 
       subroutine init_hist (dt)
 
+      use ice_calendar, only: lower_case
       use ice_blocks, only: nx_block, ny_block
       use ice_broadcast, only: broadcast_scalar, broadcast_array
-      use ice_calendar, only: yday, days_per_year, histfreq, &
+      use ice_calendar, only: yday, days_per_year, histfreq_unit, &
           histfreq_n, nstreams
       use ice_domain_size, only: max_blocks, max_nstrm, nilyr, nslyr, nblyr, ncat, nfsd
       use ice_dyn_shared, only: kdyn
@@ -266,33 +267,244 @@
 
          close(nu_nml)
          call release_fileunit(nu_nml)
+
+         ! history frequency flags are not case sensitive
+         f_CMIP = lower_case(f_CMIP)
+         f_hi = lower_case(f_hi)
+         f_hs = lower_case(f_hs)
+         f_snowfrac = lower_case(f_snowfrac)
+         f_snowfracn = lower_case(f_snowfracn)
+         f_Tsfc = lower_case(f_Tsfc)
+         f_aice = lower_case(f_aice)
+         f_aice_init = lower_case(f_aice_init)
+         f_uvel = lower_case(f_uvel)
+         f_vvel = lower_case(f_vvel)
+         f_icespd = lower_case(f_icespd)
+         f_icedir = lower_case(f_icedir)
+         f_uatm = lower_case(f_uatm)
+         f_vatm = lower_case(f_vatm)
+         f_atmspd = lower_case(f_atmspd)
+         f_atmdir = lower_case(f_atmdir)
+         f_fswup = lower_case(f_fswup)
+         f_fswdn = lower_case(f_fswdn)
+         f_flwdn = lower_case(f_flwdn)
+         f_snow = lower_case(f_snow)
+         f_snow_ai = lower_case(f_snow_ai)
+         f_rain = lower_case(f_rain)
+         f_rain_ai = lower_case(f_rain_ai)
+         f_sst = lower_case(f_sst)
+         f_sss = lower_case(f_sss)
+         f_uocn = lower_case(f_uocn)
+         f_vocn = lower_case(f_vocn)
+         f_ocnspd = lower_case(f_ocnspd)
+         f_ocndir = lower_case(f_ocndir)
+         f_sice = lower_case(f_sice)
+         f_frzmlt = lower_case(f_frzmlt)
+         f_fswfac = lower_case(f_fswfac)
+         f_fswint_ai = lower_case(f_fswint_ai)
+         f_fswabs = lower_case(f_fswabs)
+         f_fswabs_ai = lower_case(f_fswabs_ai)
+         f_albsni = lower_case(f_albsni)
+         f_alvdr = lower_case(f_alvdr)
+         f_alidr = lower_case(f_alidr)
+         f_alvdf = lower_case(f_alvdf)
+         f_alidf = lower_case(f_alidf)
+         f_alvdr_ai = lower_case(f_alvdr_ai)
+         f_alidr_ai = lower_case(f_alidr_ai)
+         f_alvdf_ai = lower_case(f_alvdf_ai)
+         f_alidf_ai = lower_case(f_alidf_ai)
+         f_albice = lower_case(f_albice)
+         f_albsno = lower_case(f_albsno)
+         f_albpnd = lower_case(f_albpnd)
+         f_coszen = lower_case(f_coszen)
+         f_flat = lower_case(f_flat)
+         f_flat_ai = lower_case(f_flat_ai)
+         f_fsens = lower_case(f_fsens)
+         f_fsens_ai = lower_case(f_fsens_ai)
+         f_flwup = lower_case(f_flwup)
+         f_flwup_ai = lower_case(f_flwup_ai)
+         f_evap = lower_case(f_evap)
+         f_evap_ai = lower_case(f_evap_ai)
+         f_Tair = lower_case(f_Tair)
+         f_Tref = lower_case(f_Tref)
+         f_Qref = lower_case(f_Qref)
+         f_congel = lower_case(f_congel)
+         f_frazil = lower_case(f_frazil)
+         f_snoice = lower_case(f_snoice)
+         f_dsnow = lower_case(f_dsnow)
+         f_meltt = lower_case(f_meltt)
+         f_melts = lower_case(f_melts)
+         f_meltb = lower_case(f_meltb)
+         f_meltl = lower_case(f_meltl)
+         f_fresh = lower_case(f_fresh)
+         f_fresh_ai = lower_case(f_fresh_ai)
+         f_fsalt = lower_case(f_fsalt)
+         f_fsalt_ai = lower_case(f_fsalt_ai)
+         f_fbot = lower_case(f_fbot)
+         f_fhocn = lower_case(f_fhocn)
+         f_fhocn_ai = lower_case(f_fhocn_ai)
+         f_fswthru = lower_case(f_fswthru)
+         f_fswthru_ai = lower_case(f_fswthru_ai)
+         f_strairx = lower_case(f_strairx)
+         f_strairy = lower_case(f_strairy)
+         f_strtltx = lower_case(f_strtltx)
+         f_strtlty = lower_case(f_strtlty)
+         f_strcorx = lower_case(f_strcorx)
+         f_strcory = lower_case(f_strcory)
+         f_strocnx = lower_case(f_strocnx)
+         f_strocny = lower_case(f_strocny)
+         f_strintx = lower_case(f_strintx)
+         f_strinty = lower_case(f_strinty)
+         f_taubx = lower_case(f_taubx)
+         f_tauby = lower_case(f_tauby)
+         f_strength = lower_case(f_strength)
+         f_vort = lower_case(f_vort)
+         f_divu = lower_case(f_divu)
+         f_shear = lower_case(f_shear)
+         f_sig1 = lower_case(f_sig1)
+         f_sig2 = lower_case(f_sig2)
+         f_sigP = lower_case(f_sigP)
+         f_dvidtt = lower_case(f_dvidtt)
+         f_dvidtd = lower_case(f_dvidtd)
+         f_daidtt = lower_case(f_daidtt)
+         f_daidtd = lower_case(f_daidtd)
+         f_dagedtt = lower_case(f_dagedtt)
+         f_dagedtd = lower_case(f_dagedtd)
+         f_mlt_onset = lower_case(f_mlt_onset)
+         f_frz_onset = lower_case(f_frz_onset)
+         f_iage = lower_case(f_iage)
+         f_FY = lower_case(f_FY)
+         f_hisnap = lower_case(f_hisnap)
+         f_aisnap = lower_case(f_aisnap)
+         f_sithick = lower_case(f_sithick)
+         f_sisnthick = lower_case(f_sisnthick)
+         f_siage = lower_case(f_siage)
+         f_siconc = lower_case(f_siconc)
+         f_sisnconc = lower_case(f_sisnconc)
+         f_sisnmass = lower_case(f_sisnmass)
+         f_sitemptop = lower_case(f_sitemptop)
+         f_sitempsnic = lower_case(f_sitempsnic)
+         f_sitempbot = lower_case(f_sitempbot)
+         f_sivol = lower_case(f_sivol)
+         f_sispeed = lower_case(f_sispeed)
+         f_sidir = lower_case(f_sidir)
+         f_siu = lower_case(f_siu)
+         f_siv = lower_case(f_siv)
+         f_sidmasstranx = lower_case(f_sidmasstranx)
+         f_sidmasstrany = lower_case(f_sidmasstrany)
+         f_sistrxdtop = lower_case(f_sistrxdtop)
+         f_sistrydtop = lower_case(f_sistrydtop)
+         f_sistrxubot = lower_case(f_sistrxubot)
+         f_sistryubot = lower_case(f_sistryubot)
+         f_sicompstren = lower_case(f_sicompstren)
+         f_sisali = lower_case(f_sisali)
+         f_sihc = lower_case(f_sihc)
+         f_sisnhc = lower_case(f_sisnhc)
+         f_sidconcth = lower_case(f_sidconcth)
+         f_sidconcdyn = lower_case(f_sidconcdyn)
+         f_sidmassth = lower_case(f_sidmassth)
+         f_sidmassdyn = lower_case(f_sidmassdyn)
+         f_sidmassgrowthwat = lower_case(f_sidmassgrowthwat)
+         f_sidmassgrowthbot = lower_case(f_sidmassgrowthbot)
+         f_simass = lower_case(f_simass)
+         f_sisaltmass = lower_case(f_sisaltmass)
+         f_sidmassgrowthsi = lower_case(f_sidmassgrowthsi)
+         f_sidmassevapsubl = lower_case(f_sidmassevapsubl)
+         f_sisndmasssubl = lower_case(f_sisndmasssubl)
+         f_sidmassmelttop = lower_case(f_sidmassmelttop)
+         f_sidmassmeltbot = lower_case(f_sidmassmeltbot)
+         f_sidmassmeltlat = lower_case(f_sidmassmeltlat)
+         f_sisndmasssnf = lower_case(f_sisndmasssnf)
+         f_sisndmassmelt = lower_case(f_sisndmassmelt)
+         f_sisndmassdyn = lower_case(f_sisndmassdyn)
+         f_sisndmasssi = lower_case(f_sisndmasssi)
+         f_siflswdtop = lower_case(f_siflswdtop)
+         f_siflswutop = lower_case(f_siflswutop)
+         f_siflswdbot = lower_case(f_siflswdbot)
+         f_sifllwdtop = lower_case(f_sifllwdtop)
+         f_sifllwutop = lower_case(f_sifllwutop)
+         f_siflsenstop = lower_case(f_siflsenstop)
+         f_siflsensbot = lower_case(f_siflsensbot)
+         f_sifllattop = lower_case(f_sifllattop)
+         f_siflcondtop = lower_case(f_siflcondtop)
+         f_siflcondbot = lower_case(f_siflcondbot)
+         f_sipr = lower_case(f_sipr)
+         f_sifb = lower_case(f_sifb)
+         f_siflsaltbot = lower_case(f_siflsaltbot)
+         f_siflfwbot = lower_case(f_siflfwbot)
+         f_siflfwdrain = lower_case(f_siflfwdrain)
+         f_siforcetiltx = lower_case(f_siforcetiltx)
+         f_siforcetilty = lower_case(f_siforcetilty)
+         f_siforcecoriolx = lower_case(f_siforcecoriolx)
+         f_siforcecorioly = lower_case(f_siforcecorioly)
+         f_siforceintstrx = lower_case(f_siforceintstrx)
+         f_siforceintstry = lower_case(f_siforceintstry)
+         f_siitdconc = lower_case(f_siitdconc)
+         f_siitdsnconc = lower_case(f_siitdsnconc)
+         f_siitdthick = lower_case(f_siitdthick)
+         f_siitdsnthick = lower_case(f_siitdsnthick)
+         f_sidragbot = lower_case(f_sidragbot)
+         f_sidragtop = lower_case(f_sidragtop)
+         f_sistressave = lower_case(f_sistressave)
+         f_sistressmax = lower_case(f_sistressmax)
+         f_sidivvel = lower_case(f_sidivvel)
+         f_sishearvel = lower_case(f_sishearvel)
+         f_sitimefrac = lower_case(f_sitimefrac)
+         f_aicen = lower_case(f_aicen)
+         f_vicen = lower_case(f_vicen)
+         f_vsnon = lower_case(f_vsnon)
+         f_trsig = lower_case(f_trsig)
+         f_icepresent = lower_case(f_icepresent)
+         f_fsurf_ai = lower_case(f_fsurf_ai)
+         f_fcondtop_ai = lower_case(f_fcondtop_ai)
+         f_fmeltt_ai = lower_case(f_fmeltt_ai)
+         f_fsurfn_ai = lower_case(f_fsurfn_ai)
+         f_fcondtopn_ai = lower_case(f_fcondtopn_ai)
+         f_fmelttn_ai = lower_case(f_fmelttn_ai)
+         f_flatn_ai = lower_case(f_flatn_ai)
+         f_fsensn_ai = lower_case(f_fsensn_ai)
+         f_keffn_top = lower_case(f_keffn_top)
+         f_Tinz = lower_case(f_Tinz)
+         f_Sinz = lower_case(f_Sinz)
+         f_Tsnz = lower_case(f_Tsnz)
+         f_a11 = lower_case(f_a11)
+         f_a12 = lower_case(f_a12)
+         f_e11 = lower_case(f_e11)
+         f_e12 = lower_case(f_e12)
+         f_e22 = lower_case(f_e22)
+         f_s11 = lower_case(f_s11)
+         f_s12 = lower_case(f_s12)
+         f_s22 = lower_case(f_s22)
+         f_yieldstress11 = lower_case(f_yieldstress11)
+         f_yieldstress12 = lower_case(f_yieldstress12)
+         f_yieldstress22 = lower_case(f_yieldstress22)
       endif
 
-      ! histfreq options ('1','h','d','m','y')
+      ! histfreq_unit options ('1','h','d','m','y','n'), or 'x' for unused streams
       nstreams = 0
       do ns = 1, max_nstrm
-         if (histfreq(ns) == '1' .or. histfreq(ns) == 'h' .or. &
-             histfreq(ns) == 'd' .or. histfreq(ns) == 'm' .or. &
-             histfreq(ns) == 'y' .or. histfreq(ns) == 'n') then
+         if (histfreq_unit(ns) == '1' .or. histfreq_unit(ns) == 'h' .or. &
+             histfreq_unit(ns) == 'd' .or. histfreq_unit(ns) == 'm' .or. &
+             histfreq_unit(ns) == 'y' .or. histfreq_unit(ns) == 'n') then
                 nstreams = nstreams + 1
                 if (ns >= 2) then
-                   if (histfreq(ns-1) == 'x') then
-                      call abort_ice(subname//' ERROR: histfreq all non x must be at start of array', &
+                   if (histfreq_unit(ns-1) == 'x') then
+                      call abort_ice(subname//' ERROR: histfreq_unit all non x must be at start of array', &
                            file=__FILE__, line=__LINE__)
                    endif
                 endif
-         else if (histfreq(ns) /= 'x') then
-             write(nu_diag, * ) subname,' ns,histfreq = ',ns,histfreq(ns)
-             call abort_ice(subname//' ERROR: histfreq contains illegal element', &
+         else if (histfreq_unit(ns) /= 'x') then
+             write(nu_diag, * ) subname,' ns,histfreq_unit = ',ns,histfreq_unit(ns)
+             call abort_ice(subname//' ERROR: histfreq_unit contains illegal element', &
                   file=__FILE__, line=__LINE__)
          endif
       enddo
       if (nstreams == 0 .and. my_task == master_task) write (nu_diag,*) subname,' WARNING: No history output'
       do ns1 = 1, nstreams
          do ns2 = 1, nstreams
-            if (histfreq(ns1) == histfreq(ns2) .and. ns1/=ns2 &
+            if (histfreq_unit(ns1) == histfreq_unit(ns2) .and. ns1/=ns2 &
                .and. my_task == master_task) then
-               call abort_ice(subname//' ERROR: histfreq elements must be unique', &
+               call abort_ice(subname//' ERROR: histfreq_unit elements must be unique', &
                     file=__FILE__, line=__LINE__)
             endif
          enddo
@@ -301,7 +513,7 @@
       ! Turn on one-time grid output file
       if (grid_outfile) then
          nstreams = nstreams + 1
-         histfreq(nstreams) = 'g'
+         histfreq_unit(nstreams) = 'g'
          hist_avg(nstreams) = .false.
          if (my_task == master_task) write (nu_diag,*) subname,' Writing one-time grid file'
       endif
@@ -664,7 +876,7 @@
 
       ! 2D variables
       do ns1 = 1, nstreams
-      if (histfreq(ns1) /= 'x') then
+      if (histfreq_unit(ns1) /= 'x') then
 
 !!!!! begin example
 !         call define_hist_field(n_example,"example","m",tstr2D, tcstr, &
@@ -1853,7 +2065,7 @@
              "sistressmax is instantaneous", c1, c0,                               &
              ns1, f_sistressmax, avg_ice_present='none', mask_ice_free_points=.false.)
 
-      endif ! if (histfreq(ns1) /= 'x') then
+      endif ! if (histfreq_unit(ns1) /= 'x') then
       enddo ! ns1
 
       ! other 2D history variables
@@ -1880,7 +2092,7 @@
       ! 3D (category) variables looped separately for ordering
       !-----------------------------------------------------------------
       do ns1 = 1, nstreams
-      if (histfreq(ns1) /= 'x') then
+      if (histfreq_unit(ns1) /= 'x') then
 
            call define_hist_field(n_aicen,"aicen","1",tstr3Dc, tcstr, &
               "ice area, categories","none", c1, c0,                  &
@@ -1949,7 +2161,7 @@
               c1, c0,                                                           &
               ns1, f_siitdthick, avg_ice_present='final', mask_ice_free_points=.false.)
 
-      endif ! if (histfreq(ns1) /= 'x') then
+      endif ! if (histfreq_unit(ns1) /= 'x') then
       enddo ! ns1
 
       ! other 3D (category) history variables
@@ -1971,14 +2183,14 @@
       !-----------------------------------------------------------------
 
 !      do ns1 = 1, nstreams
-!      if (histfreq(ns1) /= 'x') then
+!      if (histfreq_unit(ns1) /= 'x') then
 
 !         call define_hist_field(n_field3dz,"field3dz","1",tstr3Dz, tcstr, &
 !            "example 3dz field",                    &
 !            "vertical profile", c1, c0,                  &
 !            ns1, f_field3dz)
 
-!      endif ! if (histfreq(ns1) /= 'x') then
+!      endif ! if (histfreq_unit(ns1) /= 'x') then
 !      enddo ! ns1
 
       ! biogeochemistry
@@ -1997,7 +2209,7 @@
       !-----------------------------------------------------------------
 
       do ns1 = 1, nstreams
-      if (histfreq(ns1) /= 'x') then
+      if (histfreq_unit(ns1) /= 'x') then
 
          call define_hist_field(n_Tinz,"Tinz","C",tstr4Di, tcstr, &
             "ice internal temperatures on CICE grid",          &
@@ -2009,18 +2221,18 @@
             "vertical profile", c1, c0,                    &
             ns1, f_Sinz)
 
-      endif ! if (histfreq(ns1) /= 'x') then
+      endif ! if (histfreq_unit(ns1) /= 'x') then
       enddo ! ns1
 
       do ns1 = 1, nstreams
-      if (histfreq(ns1) /= 'x') then
+      if (histfreq_unit(ns1) /= 'x') then
 
          call define_hist_field(n_Tsnz,"Tsnz","C",tstr4Ds, tcstr, &
             "snow internal temperatures",          &
             "vertical profile", c1, c0,                    &
             ns1, f_Tsnz)
 
-      endif ! if (histfreq(ns1) /= 'x') then
+      endif ! if (histfreq_unit(ns1) /= 'x') then
       enddo
 
        if (f_Tinz   (1:1) /= 'x') then
@@ -2114,7 +2326,7 @@
               avail_hist_fields(n)%vunit, avail_hist_fields(n)%vname, &
               avail_hist_fields(n)%vhistfreq,avail_hist_fields(n)%vhistfreq_n
            do ns = 1, nstreams
-              if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) &
+              if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns)) &
                  ntmp(ns)=ntmp(ns)+1
            enddo
         enddo ! num_avail_hist_fields_tot
@@ -2205,7 +2417,7 @@
       use ice_domain_size, only: nfsd
       use ice_grid, only: tmask, lmask_n, lmask_s, dxU, dyU, grid_ice
       use ice_calendar, only: new_year, write_history, write_restart, &
-                              write_ic, timesecs, histfreq, nstreams, mmonth, &
+                              write_ic, timesecs, histfreq_unit, nstreams, mmonth, &
                               new_month, write_histrest
       use ice_dyn_eap, only: a11, a12, e11, e12, e22, s11, s12, s22, &
           yieldstress11, yieldstress12, yieldstress22
@@ -2318,51 +2530,51 @@
       do ns = 1,nstreams
          if (.not. hist_avg(ns)) then  ! write snapshots
            do n = 1,n2D
-              if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) &
+              if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns)) &
                   a2D(:,:,n,:) = c0
            enddo
            do n = n2D + 1, n3Dccum
               nn = n - n2D
-              if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) &
+              if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns)) &
                   a3Dc(:,:,:,nn,:) = c0
            enddo
            do n = n3Dccum + 1, n3Dzcum
               nn = n - n3Dccum
-              if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) &
+              if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns)) &
                   a3Dz(:,:,:,nn,:) = c0
            enddo
            do n = n3Dzcum + 1, n3Dbcum
               nn = n - n3Dzcum
-              if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) &
+              if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns)) &
                   a3Db(:,:,:,nn,:) = c0
            enddo
            do n = n3Dbcum + 1, n3Dacum
               nn = n - n3Dbcum
-              if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) &
+              if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns)) &
                   a3Da(:,:,:,nn,:) = c0
            enddo
            do n = n3Dacum + 1, n3Dfcum
               nn = n - n3Dacum
-              if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) &
+              if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns)) &
                   a3Df(:,:,:,nn,:) = c0
            enddo
            do n = n3Dfcum + 1, n4Dicum
               nn = n - n3Dfcum
-              if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) &
+              if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns)) &
                   a4Di(:,:,:,:,nn,:) = c0
            enddo
            do n = n4Dicum + 1, n4Dscum
               nn = n - n4Dicum
-              if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) &
+              if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns)) &
                   a4Ds(:,:,:,:,nn,:) = c0
            enddo
            do n = n4Dscum + 1, n4Dfcum
               nn = n - n4Dscum
-              if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) &
+              if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns)) &
                   a4Df(:,:,:,:,nn,:) = c0
            enddo
            avgct(ns) = c1
-         else                      ! write averages over time histfreq
+         else                      ! write averages over time histfreq_unit
            avgct(ns) = avgct(ns) + c1
          endif
          if (avgct(ns) == c1) then
@@ -3451,7 +3663,7 @@
            endif
 
            do n = 1, num_avail_hist_fields_2D
-              if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+              if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns)) then
 
               ! Only average when/where ice present
               if (trim(avail_hist_fields(n)%avg_ice_present) == 'final') then
@@ -3625,7 +3837,7 @@
 
            do n = 1, num_avail_hist_fields_3Dc
               nn = n2D + n
-              if (avail_hist_fields(nn)%vhistfreq == histfreq(ns)) then
+              if (avail_hist_fields(nn)%vhistfreq == histfreq_unit(ns)) then
 
                  if (trim(avail_hist_fields(nn)%avg_ice_present) /= 'none') then
                     do k = 1, ncat_hist
@@ -3661,7 +3873,7 @@
 
            do n = 1, num_avail_hist_fields_3Dz
               nn = n3Dccum + n
-              if (avail_hist_fields(nn)%vhistfreq == histfreq(ns)) then
+              if (avail_hist_fields(nn)%vhistfreq == histfreq_unit(ns)) then
 
               do k = 1, nzilyr
               do j = jlo, jhi
@@ -3680,7 +3892,7 @@
 
            do n = 1, num_avail_hist_fields_3Db
               nn = n3Dzcum + n
-              if (avail_hist_fields(nn)%vhistfreq == histfreq(ns)) then
+              if (avail_hist_fields(nn)%vhistfreq == histfreq_unit(ns)) then
               do k = 1, nzblyr
               do j = jlo, jhi
               do i = ilo, ihi
@@ -3698,7 +3910,7 @@
 
            do n = 1, num_avail_hist_fields_3Da
               nn = n3Dbcum + n
-              if (avail_hist_fields(nn)%vhistfreq == histfreq(ns)) then
+              if (avail_hist_fields(nn)%vhistfreq == histfreq_unit(ns)) then
               do k = 1, nzalyr
               do j = jlo, jhi
               do i = ilo, ihi
@@ -3716,7 +3928,7 @@
 
            do n = 1, num_avail_hist_fields_3Df
               nn = n3Dacum + n
-              if (avail_hist_fields(nn)%vhistfreq == histfreq(ns)) then
+              if (avail_hist_fields(nn)%vhistfreq == histfreq_unit(ns)) then
               do k = 1, nfsd
               do j = jlo, jhi
               do i = ilo, ihi
@@ -3734,7 +3946,7 @@
 
            do n = 1, num_avail_hist_fields_4Di
               nn = n3Dfcum + n
-              if (avail_hist_fields(nn)%vhistfreq == histfreq(ns)) then
+              if (avail_hist_fields(nn)%vhistfreq == histfreq_unit(ns)) then
               do k = 1, nzilyr
               do ic = 1, ncat_hist
               do j = jlo, jhi
@@ -3754,7 +3966,7 @@
 
            do n = 1, num_avail_hist_fields_4Ds
               nn = n4Dicum + n
-              if (avail_hist_fields(nn)%vhistfreq == histfreq(ns)) then
+              if (avail_hist_fields(nn)%vhistfreq == histfreq_unit(ns)) then
               do k = 1, nzslyr
               do ic = 1, ncat_hist
               do j = jlo, jhi
@@ -3774,7 +3986,7 @@
 
            do n = 1, num_avail_hist_fields_4Df
               nn = n4Dscum + n
-              if (avail_hist_fields(nn)%vhistfreq == histfreq(ns)) then
+              if (avail_hist_fields(nn)%vhistfreq == histfreq_unit(ns)) then
               do k = 1, nfsd
               do ic = 1, ncat_hist
               do j = jlo, jhi
@@ -3961,46 +4173,46 @@
 !        if (write_history(ns)) albcnt(:,:,:,ns) = c0
 
         do n = 1,n2D
-           if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) a2D(:,:,n,:) = c0
+           if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns)) a2D(:,:,n,:) = c0
         enddo
         do n = n2D + 1, n3Dccum
            nn = n - n2D
-           if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) a3Dc(:,:,:,nn,:) = c0
+           if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns)) a3Dc(:,:,:,nn,:) = c0
         enddo
         do n = n3Dccum + 1, n3Dzcum
            nn = n - n3Dccum
-           if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) a3Dz(:,:,:,nn,:) = c0
+           if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns)) a3Dz(:,:,:,nn,:) = c0
         enddo
         do n = n3Dzcum + 1, n3Dbcum
            nn = n - n3Dzcum
-           if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) a3Db(:,:,:,nn,:) = c0
+           if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns)) a3Db(:,:,:,nn,:) = c0
         enddo
         do n = n3Dbcum + 1, n3Dacum
            nn = n - n3Dbcum
-           if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) a3Da(:,:,:,nn,:) = c0
+           if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns)) a3Da(:,:,:,nn,:) = c0
         enddo
         do n = n3Dacum + 1, n3Dfcum
            nn = n - n3Dacum
-           if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) a3Df(:,:,:,nn,:) = c0
+           if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns)) a3Df(:,:,:,nn,:) = c0
         enddo
         do n = n3Dfcum + 1, n4Dicum
            nn = n - n3Dfcum
-           if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) a4Di(:,:,:,:,nn,:) = c0
+           if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns)) a4Di(:,:,:,:,nn,:) = c0
         enddo
         do n = n4Dicum + 1, n4Dscum
            nn = n - n4Dicum
-           if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) a4Ds(:,:,:,:,nn,:) = c0
+           if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns)) a4Ds(:,:,:,:,nn,:) = c0
         enddo
         do n = n4Dscum + 1, n4Dfcum
            nn = n - n4Dscum
-           if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) a4Df(:,:,:,:,nn,:) = c0
+           if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns)) a4Df(:,:,:,:,nn,:) = c0
         enddo
 
       endif  ! write_history or write_ic
 
       ! Turn off one-time grid output file
-      if (histfreq(ns) == 'g') then
-         histfreq(ns) = 'x'
+      if (histfreq_unit(ns) == 'g') then
+         histfreq_unit(ns) = 'x'
          nstreams = nstreams - 1
       endif
 
