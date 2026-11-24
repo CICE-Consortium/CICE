@@ -35,7 +35,8 @@
       implicit none
 
       private
-      public :: define_hist_field, accum_hist_field, icefields_nml, construct_filename, ice_brine_density
+      public :: define_hist_field, accum_hist_field, icefields_nml, construct_filename, ice_brine_density, &
+                read_hist_nml
 
       integer (kind=int_kind), public :: history_precision
 
@@ -1300,6 +1301,71 @@
          rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
 
       end subroutine ice_brine_density
+!=======================================================================
+
+! Read a history namelist group as text, from the &name line where goto_nml
+! leaves the file to the / that ends the group, without comments and in lower
+! case, so the history frequency flags are not case sensitive.  The namelist
+! is then read from nml_text.
+
+      subroutine read_hist_nml(iunit, nml_text, status)
+
+      use ice_calendar, only: lower_case
+
+      integer (kind=int_kind), intent(in) :: &
+         iunit          ! namelist file unit
+
+      character (len=:), allocatable, intent(out) :: &
+         nml_text       ! namelist group text
+
+      integer (kind=int_kind), intent(out) :: &
+         status         ! read status, nonzero if the group does not end
+
+      ! local variables
+
+      character (len=4096) :: &
+         line           ! line of the namelist file
+
+      character (len=1) :: &
+         quote          ! quote character of the current string
+
+      integer (kind=int_kind) :: &
+         n              ! character index
+
+      logical (kind=log_kind) :: &
+         in_quote   , & ! in a quoted string
+         done           ! found the / that ends the group
+
+      character(len=*), parameter :: subname = '(read_hist_nml)'
+
+      nml_text = ''
+      done = .false.
+      do while (.not. done)
+         read(iunit, '(a)', iostat=status) line
+         if (status /= 0) return
+         ! remove comments and anything after the end of the group
+         in_quote = .false.
+         do n = 1, len_trim(line)
+            if (in_quote) then
+               if (line(n:n) == quote) in_quote = .false.
+            elseif (line(n:n) == '"' .or. line(n:n) == "'") then
+               in_quote = .true.
+               quote = line(n:n)
+            elseif (line(n:n) == '!') then
+               line(n:) = ' '
+               exit
+            elseif (line(n:n) == '/') then
+               line(n+1:) = ' '
+               done = .true.
+               exit
+            endif
+         enddo
+         nml_text = nml_text // ' ' // trim(line)
+      enddo
+      nml_text = lower_case(nml_text)
+
+      end subroutine read_hist_nml
+
 !=======================================================================
 
       end module ice_history_shared

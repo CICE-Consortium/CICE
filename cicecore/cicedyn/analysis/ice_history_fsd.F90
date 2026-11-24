@@ -72,7 +72,7 @@
 
       subroutine init_hist_fsd_2D
 
-      use ice_calendar, only: lower_case
+      use ice_history_shared, only: read_hist_nml
       use ice_broadcast, only: broadcast_scalar
       use ice_calendar, only: nstreams
       use ice_communicate, only: my_task, master_task
@@ -84,6 +84,9 @@
       logical (kind=log_kind) :: tr_fsd, wave_spec
       character (len=char_len_long) :: tmpstr2  ! test namelist
       character(len=char_len)       :: nml_name ! text namelist name
+
+      character (len=:), allocatable :: &
+         nml_text      ! namelist group text, in lower case
 
       character(len=*), parameter :: subname = '(init_hist_fsd_2D)'
 
@@ -119,37 +122,20 @@
                file=__FILE__, line=__LINE__)
          endif
 
-         ! read namelist
-         nml_error =  1
-         do while (nml_error > 0)
-            read(nu_nml, nml=icefields_fsd_nml,iostat=nml_error)
-            ! check if error
-            if (nml_error /= 0) then
-               ! backspace and re-read erroneous line
-               backspace(nu_nml)
-               read(nu_nml,fmt='(A)') tmpstr2
-               call abort_ice(subname//'ERROR: ' // trim(nml_name) // ' reading ' // &
-                    trim(tmpstr2), file=__FILE__, line=__LINE__)
-            endif
-         end do
+         ! read namelist, in lower case
+         call read_hist_nml(nu_nml, nml_text, nml_error)
+         if (nml_error /= 0) then
+            call abort_ice(subname//' ERROR: '//trim(nml_name)//' does not end with /', &
+               file=__FILE__, line=__LINE__)
+         endif
+         read(nml_text, nml=icefields_fsd_nml, iostat=nml_error, iomsg=tmpstr2)
+         if (nml_error /= 0) then
+            call abort_ice(subname//' ERROR: '//trim(nml_name)//' reading '//trim(tmpstr2), &
+               file=__FILE__, line=__LINE__)
+         endif
 
          close(nu_nml)
          call release_fileunit(nu_nml)
-
-         ! history frequency flags are not case sensitive
-         f_afsd = lower_case(f_afsd)
-         f_afsdn = lower_case(f_afsdn)
-         f_dafsd_newi = lower_case(f_dafsd_newi)
-         f_dafsd_latg = lower_case(f_dafsd_latg)
-         f_dafsd_latm = lower_case(f_dafsd_latm)
-         f_dafsd_wave = lower_case(f_dafsd_wave)
-         f_dafsd_weld = lower_case(f_dafsd_weld)
-         f_wave_sig_ht = lower_case(f_wave_sig_ht)
-         f_aice_ww = lower_case(f_aice_ww)
-         f_diam_ww = lower_case(f_diam_ww)
-         f_hice_ww = lower_case(f_hice_ww)
-         f_fsdrad = lower_case(f_fsdrad)
-         f_fsdperim = lower_case(f_fsdperim)
       endif
 
       call broadcast_scalar (f_afsd, master_task)

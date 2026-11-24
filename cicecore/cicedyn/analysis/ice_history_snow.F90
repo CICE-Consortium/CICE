@@ -70,7 +70,7 @@
 
       subroutine init_hist_snow_2D (dt)
 
-      use ice_calendar, only: lower_case
+      use ice_history_shared, only: read_hist_nml
       use ice_broadcast, only: broadcast_scalar
       use ice_calendar, only: nstreams, histfreq_unit
       use ice_communicate, only: my_task, master_task
@@ -88,6 +88,9 @@
       logical (kind=log_kind) :: tr_snow
       character(len=char_len_long) :: tmpstr2 ! for namelist check
       character(len=char_len)      :: nml_name ! for namelist check
+
+      character (len=:), allocatable :: &
+         nml_text      ! namelist group text, in lower case
 
       character(len=*), parameter :: subname = '(init_hist_snow_2D)'
 
@@ -123,37 +126,20 @@
                     file=__FILE__, line=__LINE__)
             endif
 
-            ! read namelist
-            nml_error =  1
-            do while (nml_error > 0)
-               read(nu_nml, nml=icefields_snow_nml,iostat=nml_error)
-               ! check if error
-               if (nml_error /= 0) then
-                  ! backspace and re-read erroneous line
-                  backspace(nu_nml)
-                  read(nu_nml,fmt='(A)') tmpstr2
-                  call abort_ice(subname//'ERROR: ' // trim(nml_name) // ' reading ' // &
-                       trim(tmpstr2), file=__FILE__, line=__LINE__)
-               endif
-            end do
+            ! read namelist, in lower case
+            call read_hist_nml(nu_nml, nml_text, nml_error)
+            if (nml_error /= 0) then
+               call abort_ice(subname//' ERROR: '//trim(nml_name)//' does not end with /', &
+                  file=__FILE__, line=__LINE__)
+            endif
+            read(nml_text, nml=icefields_snow_nml, iostat=nml_error, iomsg=tmpstr2)
+            if (nml_error /= 0) then
+               call abort_ice(subname//' ERROR: '//trim(nml_name)//' reading '//trim(tmpstr2), &
+                  file=__FILE__, line=__LINE__)
+            endif
 
             close(nu_nml)
             call release_fileunit(nu_nml)
-
-            ! history frequency flags are not case sensitive
-            f_smassice = lower_case(f_smassice)
-            f_smassicen = lower_case(f_smassicen)
-            f_smassliq = lower_case(f_smassliq)
-            f_smassliqn = lower_case(f_smassliqn)
-            f_rhos_cmp = lower_case(f_rhos_cmp)
-            f_rhos_cmpn = lower_case(f_rhos_cmpn)
-            f_rhos_cnt = lower_case(f_rhos_cnt)
-            f_rhos_cntn = lower_case(f_rhos_cntn)
-            f_rsnw = lower_case(f_rsnw)
-            f_rsnwn = lower_case(f_rsnwn)
-            f_meltsliq = lower_case(f_meltsliq)
-            f_fsloss = lower_case(f_fsloss)
-            f_sisndmasswind = lower_case(f_sisndmasswind)
 
          endif
 
