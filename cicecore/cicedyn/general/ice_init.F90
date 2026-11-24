@@ -45,12 +45,6 @@
 
       public :: input_data, init_state, set_state_var
 
-      ! standard interface for frequency and run length namelist settings
-      interface nml_freq_char
-         module procedure nml_freq_char_scalar, &
-                          nml_freq_char_array
-      end interface
-
 !=======================================================================
 
       contains
@@ -344,7 +338,7 @@
       numin = 11             ! min allowed unit number
       numax = 99             ! max allowed unit number
       ! frequency and run length settings are blank or -99 here, so that the
-      ! deprecated names can be detected, the defaults are given to nml_freq_int and nml_freq_char
+      ! deprecated names can be detected, the defaults are set where they are checked
       runlen_unit = ' '      ! units of runlen_n 'y', 'm', 'd', 'h', 's', '1' (default '1')
       runlen_n = -99         ! run length in runlen_unit (default 99999)
       diagfreq_n = -99       ! diag output every diagfreq_n timesteps (default 24)
@@ -1869,13 +1863,51 @@
       ! run length and history, restart and diagnostic frequencies:
       ! deprecated names, defaults, lower case and checks
 
-      call nml_freq_int ('npt'     , npt     , 'runlen_n'   , runlen_n   , 99999, abort_list)
-      call nml_freq_int ('diagfreq', diagfreq, 'diagfreq_n' , diagfreq_n , 24   , abort_list)
-      call nml_freq_char('npt_unit', npt_unit, 'runlen_unit', runlen_unit, '1'  , abort_list)
-      call nml_freq_char('histfreq', histfreq, 'histfreq_unit', histfreq_unit, &
-                         (/'1','h','d','m','y',('x',n=6,max_nstrm)/), abort_list)
-      call nml_freq_char('dumpfreq', dumpfreq, 'dumpfreq_unit', dumpfreq_unit, &
-                         (/'y',('x',n=2,max_nstrm)/), abort_list)
+      ! a deprecated name is used with a warning, setting both names is an error,
+      ! settings that are not set (-99 or blank) get the default
+      if (npt /= -99 .and. runlen_n /= -99) then
+         if (my_task == master_task) write(nu_diag,*) subname//' ERROR: both npt and runlen_n are set'
+         abort_list = trim(abort_list)//":71"
+      elseif (npt /= -99) then
+         if (my_task == master_task) write(nu_diag,*) subname//' WARNING: npt is deprecated, use runlen_n'
+         runlen_n = npt
+      elseif (runlen_n == -99) then
+         runlen_n = 99999
+      endif
+      if (diagfreq /= -99 .and. diagfreq_n /= -99) then
+         if (my_task == master_task) write(nu_diag,*) subname//' ERROR: both diagfreq and diagfreq_n are set'
+         abort_list = trim(abort_list)//":71"
+      elseif (diagfreq /= -99) then
+         if (my_task == master_task) write(nu_diag,*) subname//' WARNING: diagfreq is deprecated, use diagfreq_n'
+         diagfreq_n = diagfreq
+      elseif (diagfreq_n == -99) then
+         diagfreq_n = 24
+      endif
+      if (npt_unit /= ' ' .and. runlen_unit /= ' ') then
+         if (my_task == master_task) write(nu_diag,*) subname//' ERROR: both npt_unit and runlen_unit are set'
+         abort_list = trim(abort_list)//":71"
+      elseif (npt_unit /= ' ') then
+         if (my_task == master_task) write(nu_diag,*) subname//' WARNING: npt_unit is deprecated, use runlen_unit'
+         runlen_unit = npt_unit
+      elseif (runlen_unit == ' ') then
+         runlen_unit = '1'
+      endif
+      if (any(histfreq /= ' ') .and. any(histfreq_unit /= ' ')) then
+         if (my_task == master_task) write(nu_diag,*) subname//' ERROR: both histfreq and histfreq_unit are set'
+         abort_list = trim(abort_list)//":71"
+      elseif (any(histfreq /= ' ')) then
+         if (my_task == master_task) write(nu_diag,*) subname//' WARNING: histfreq is deprecated, use histfreq_unit'
+         histfreq_unit = histfreq
+      endif
+      where (histfreq_unit == ' ') histfreq_unit = (/'1','h','d','m','y',('x',n=6,max_nstrm)/)
+      if (any(dumpfreq /= ' ') .and. any(dumpfreq_unit /= ' ')) then
+         if (my_task == master_task) write(nu_diag,*) subname//' ERROR: both dumpfreq and dumpfreq_unit are set'
+         abort_list = trim(abort_list)//":71"
+      elseif (any(dumpfreq /= ' ')) then
+         if (my_task == master_task) write(nu_diag,*) subname//' WARNING: dumpfreq is deprecated, use dumpfreq_unit'
+         dumpfreq_unit = dumpfreq
+      endif
+      where (dumpfreq_unit == ' ') dumpfreq_unit = (/'y',('x',n=2,max_nstrm)/)
       ! run length in timesteps, for drivers that do not call calc_timesteps
       npt = runlen_n
       runlen_unit = lower_case(runlen_unit)
@@ -3837,120 +3869,6 @@
          file=__FILE__, line=__LINE__)
 
       end subroutine set_state_var
-
-!=======================================================================
-
-! Set a frequency or run length namelist setting.  val is the new namelist
-! variable.  On return it is the deprecated namelist value oldval (with a
-! warning) if that is set, else the new namelist value, else the default.
-! Setting both names is an error.  -99 is not set.
-
-      subroutine nml_freq_int(oldname, oldval, newname, val, default, abort_list)
-
-      character (len=*), intent(in) :: &
-         oldname, newname   ! deprecated and new namelist names
-
-      integer (kind=int_kind), intent(in) :: &
-         oldval         , & ! deprecated namelist value
-         default            ! default setting
-
-      integer (kind=int_kind), intent(inout) :: &
-         val                ! new namelist value, then the setting
-
-      character (len=*), intent(inout) :: &
-         abort_list         ! input_data error list
-
-      character(len=*), parameter :: subname = '(nml_freq_int)'
-
-      if (oldval /= -99 .and. val /= -99) then
-         if (my_task == master_task) then
-            write(nu_diag,*) subname//' ERROR: both '//trim(oldname)//' and '//trim(newname)//' are set'
-         endif
-         abort_list = trim(abort_list)//":71"
-      elseif (oldval /= -99) then
-         if (my_task == master_task) then
-            write(nu_diag,*) subname//' WARNING: '//trim(oldname)//' is deprecated, use '//trim(newname)
-         endif
-         val = oldval
-      elseif (val == -99) then
-         val = default
-      endif
-
-      end subroutine nml_freq_int
-
-!=======================================================================
-
-! Character version of nml_freq_int, blank is not set
-
-      subroutine nml_freq_char_scalar(oldname, oldval, newname, val, default, abort_list)
-
-      character (len=*), intent(in) :: &
-         oldname, newname   ! deprecated and new namelist names
-
-      character (len=*), intent(in) :: &
-         oldval         , & ! deprecated namelist value
-         default            ! default setting
-
-      character (len=*), intent(inout) :: &
-         val                ! new namelist value, then the setting
-
-      character (len=*), intent(inout) :: &
-         abort_list         ! input_data error list
-
-      character(len=*), parameter :: subname = '(nml_freq_char_scalar)'
-
-      if (oldval /= ' ' .and. val /= ' ') then
-         if (my_task == master_task) then
-            write(nu_diag,*) subname//' ERROR: both '//trim(oldname)//' and '//trim(newname)//' are set'
-         endif
-         abort_list = trim(abort_list)//":71"
-      elseif (oldval /= ' ') then
-         if (my_task == master_task) then
-            write(nu_diag,*) subname//' WARNING: '//trim(oldname)//' is deprecated, use '//trim(newname)
-         endif
-         val = oldval
-      elseif (val == ' ') then
-         val = default
-      endif
-
-      end subroutine nml_freq_char_scalar
-
-!=======================================================================
-
-! Array (history and restart stream) version of nml_freq_char_scalar,
-! elements that are not set get the default
-
-      subroutine nml_freq_char_array(oldname, oldval, newname, val, default, abort_list)
-
-      character (len=*), intent(in) :: &
-         oldname, newname   ! deprecated and new namelist names
-
-      character (len=*), dimension(:), intent(in) :: &
-         oldval         , & ! deprecated namelist values
-         default            ! default settings
-
-      character (len=*), dimension(:), intent(inout) :: &
-         val                ! new namelist values, then the settings
-
-      character (len=*), intent(inout) :: &
-         abort_list         ! input_data error list
-
-      character(len=*), parameter :: subname = '(nml_freq_char_array)'
-
-      if (any(oldval /= ' ') .and. any(val /= ' ')) then
-         if (my_task == master_task) then
-            write(nu_diag,*) subname//' ERROR: both '//trim(oldname)//' and '//trim(newname)//' are set'
-         endif
-         abort_list = trim(abort_list)//":71"
-      elseif (any(oldval /= ' ')) then
-         if (my_task == master_task) then
-            write(nu_diag,*) subname//' WARNING: '//trim(oldname)//' is deprecated, use '//trim(newname)
-         endif
-         val = oldval
-      endif
-      where (val == ' ') val = default
-
-      end subroutine nml_freq_char_array
 
 !=======================================================================
 
