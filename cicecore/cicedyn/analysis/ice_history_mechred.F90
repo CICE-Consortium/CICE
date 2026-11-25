@@ -89,7 +89,7 @@
 
       subroutine init_hist_mechred_2D
 
-      use ice_history_shared, only: read_hist_nml
+      use ice_calendar, only: lower_case
       use ice_broadcast, only: broadcast_scalar
       use ice_calendar, only: nstreams, histfreq_unit
       use ice_communicate, only: my_task, master_task
@@ -102,9 +102,6 @@
       logical (kind=log_kind) :: tr_lvl
       character(len=char_len_long) :: tmpstr2 ! for namelist check
       character(len=char_len)      :: nml_name ! for namelist check
-
-      character (len=:), allocatable :: &
-         nml_text      ! namelist group text, in lower case
 
       character(len=*), parameter :: subname = '(init_hist_mechred_2D)'
 
@@ -138,20 +135,45 @@
                file=__FILE__, line=__LINE__)
          endif
 
-         ! read namelist, in lower case
-         call read_hist_nml(nu_nml, nml_text, nml_error)
-         if (nml_error /= 0) then
-            call abort_ice(subname//' ERROR: '//trim(nml_name)//' does not end with /', &
-               file=__FILE__, line=__LINE__)
-         endif
-         read(nml_text, nml=icefields_mechred_nml, iostat=nml_error, iomsg=tmpstr2)
-         if (nml_error /= 0) then
-            call abort_ice(subname//' ERROR: '//trim(nml_name)//' reading '//trim(tmpstr2), &
-               file=__FILE__, line=__LINE__)
-         endif
+         ! read namelist
+         nml_error =  1
+         do while (nml_error > 0)
+            read(nu_nml, nml=icefields_mechred_nml,iostat=nml_error)
+            ! check if error
+            if (nml_error /= 0) then
+               ! backspace and re-read erroneous line
+               backspace(nu_nml)
+               read(nu_nml,fmt='(A)') tmpstr2
+               call abort_ice(subname//'ERROR: ' // trim(nml_name) // ' reading ' // &
+                    trim(tmpstr2), file=__FILE__, line=__LINE__)
+            endif
+         end do
 
          close(nu_nml)
          call release_fileunit(nu_nml)
+
+         ! history frequency flags are not case sensitive
+         f_ardg = lower_case(f_ardg)
+         f_vrdg = lower_case(f_vrdg)
+         f_alvl = lower_case(f_alvl)
+         f_vlvl = lower_case(f_vlvl)
+         f_dardg1dt = lower_case(f_dardg1dt)
+         f_dardg2dt = lower_case(f_dardg2dt)
+         f_dvirdgdt = lower_case(f_dvirdgdt)
+         f_opening = lower_case(f_opening)
+         f_ardgn = lower_case(f_ardgn)
+         f_vrdgn = lower_case(f_vrdgn)
+         f_dardg1ndt = lower_case(f_dardg1ndt)
+         f_dardg2ndt = lower_case(f_dardg2ndt)
+         f_dvirdgndt = lower_case(f_dvirdgndt)
+         f_aparticn = lower_case(f_aparticn)
+         f_krdgn = lower_case(f_krdgn)
+         f_aredistn = lower_case(f_aredistn)
+         f_vredistn = lower_case(f_vredistn)
+         f_araftn = lower_case(f_araftn)
+         f_vraftn = lower_case(f_vraftn)
+         f_sirdgconc = lower_case(f_sirdgconc)
+         f_sirdgthick = lower_case(f_sirdgthick)
       endif
 
       if (.not. tr_lvl) then

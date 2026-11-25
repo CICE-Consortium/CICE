@@ -257,7 +257,7 @@
 
       subroutine init_hist_bgc_2D
 
-      use ice_history_shared, only: read_hist_nml
+      use ice_calendar, only: lower_case
       use ice_broadcast, only: broadcast_scalar
       use ice_calendar, only: nstreams, histfreq_unit
       use ice_communicate, only: my_task, master_task
@@ -278,9 +278,6 @@
 
       character(len=char_len)      :: nml_name ! for namelist check
       character(len=char_len_long) :: tmpstr2 ! for namelist check
-
-      character (len=:), allocatable :: &
-         nml_text      ! namelist group text, in lower case
 
       character(len=*), parameter  :: subname = '(init_hist_bgc_2D)'
 
@@ -323,20 +320,65 @@
                file=__FILE__, line=__LINE__)
          endif
 
-         ! read namelist, in lower case
-         call read_hist_nml(nu_nml, nml_text, nml_error)
-         if (nml_error /= 0) then
-            call abort_ice(subname//' ERROR: '//trim(nml_name)//' does not end with /', &
-               file=__FILE__, line=__LINE__)
-         endif
-         read(nml_text, nml=icefields_bgc_nml, iostat=nml_error, iomsg=tmpstr2)
-         if (nml_error /= 0) then
-            call abort_ice(subname//' ERROR: '//trim(nml_name)//' reading '//trim(tmpstr2), &
-               file=__FILE__, line=__LINE__)
-         endif
+         ! read namelist
+         nml_error =  1
+         do while (nml_error > 0)
+            read(nu_nml, nml=icefields_bgc_nml,iostat=nml_error)
+            ! check if error
+            if (nml_error /= 0) then
+               ! backspace and re-read erroneous line
+               backspace(nu_nml)
+               read(nu_nml,fmt='(A)') tmpstr2
+               call abort_ice(subname//'ERROR: ' // trim(nml_name) // ' reading ' // &
+                    trim(tmpstr2), file=__FILE__, line=__LINE__)
+            endif
+         end do
 
          close(nu_nml)
          call release_fileunit(nu_nml)
+
+         ! history frequency flags are not case sensitive
+         f_fiso_atm = lower_case(f_fiso_atm)
+         f_fiso_ocn = lower_case(f_fiso_ocn)
+         f_iso = lower_case(f_iso)
+         f_faero_atm = lower_case(f_faero_atm)
+         f_faero_ocn = lower_case(f_faero_ocn)
+         f_aero = lower_case(f_aero)
+         f_fbio = lower_case(f_fbio)
+         f_fbio_ai = lower_case(f_fbio_ai)
+         f_zaero = lower_case(f_zaero)
+         f_bgc_S = lower_case(f_bgc_S)
+         f_bgc_N = lower_case(f_bgc_N)
+         f_bgc_C = lower_case(f_bgc_C)
+         f_bgc_DOC = lower_case(f_bgc_DOC)
+         f_bgc_DIC = lower_case(f_bgc_DIC)
+         f_bgc_chl = lower_case(f_bgc_chl)
+         f_bgc_Nit = lower_case(f_bgc_Nit)
+         f_bgc_Am = lower_case(f_bgc_Am)
+         f_bgc_Sil = lower_case(f_bgc_Sil)
+         f_bgc_DMSPp = lower_case(f_bgc_DMSPp)
+         f_bgc_DMSPd = lower_case(f_bgc_DMSPd)
+         f_bgc_DMS = lower_case(f_bgc_DMS)
+         f_bgc_DON = lower_case(f_bgc_DON)
+         f_bgc_Fe = lower_case(f_bgc_Fe)
+         f_bgc_hum = lower_case(f_bgc_hum)
+         f_bgc_PON = lower_case(f_bgc_PON)
+         f_bgc_ml = lower_case(f_bgc_ml)
+         f_upNO = lower_case(f_upNO)
+         f_upNH = lower_case(f_upNH)
+         f_bTin = lower_case(f_bTin)
+         f_bphi = lower_case(f_bphi)
+         f_iDi = lower_case(f_iDi)
+         f_iki = lower_case(f_iki)
+         f_fbri = lower_case(f_fbri)
+         f_hbri = lower_case(f_hbri)
+         f_zfswin = lower_case(f_zfswin)
+         f_grownet = lower_case(f_grownet)
+         f_bionet = lower_case(f_bionet)
+         f_biosnow = lower_case(f_biosnow)
+         f_PPnet = lower_case(f_PPnet)
+         f_algalpeak = lower_case(f_algalpeak)
+         f_zbgc_frac = lower_case(f_zbgc_frac)
       endif
 
       if (.not. tr_iso) then
