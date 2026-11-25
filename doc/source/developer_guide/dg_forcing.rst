@@ -251,8 +251,8 @@ by the namelist variable ``dt_wavefracture`` (in seconds):
   applied over the time since the previous record. Every interval between records is fractured exactly
   once, also with uneven record spacing and across restarts.
 
-Forcing files processed from WAM (WAve Model) or WW3 (WAVEWATCH III) output can be used.
+Forcing files processed from WAM (WAve Model) or WW3 (WAVEWATCH III) output can be used for testing.
 Processed WAM files already use the variable names above, so their spectra vary in time.
-WW3 names the frequencies ``f``; to use time-varying spectra, rename ``f`` to ``wavefreq``,
+WW3 names the frequencies ``f``; to use time-varying spectra, rename the frequencies to ``wavefreq``,
 e.g. with the NCO command ``ncrename -v f,wavefreq <file>``. Without this change, a single
 wave spectrum is used, constant throughout the simulation.
