@@ -213,7 +213,7 @@ Known bugs
 -  In stand-alone runs, restarts from the end of `ycycle` will not be
    exact.
 
--  Using the same frequency twice in `histfreq` will have unexpected
+-  Using the same frequency twice in `histfreq_unit` will have unexpected
    consequences and causes the code to abort.
 
 -  Latitude and longitude fields in the history output may be wrong when

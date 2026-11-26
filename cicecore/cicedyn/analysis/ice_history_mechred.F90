@@ -22,7 +22,7 @@
       public :: accum_hist_mechred, init_hist_mechred_2D, init_hist_mechred_3Dc
 
       !---------------------------------------------------------------
-      ! flags: write to output file if true or histfreq value
+      ! flags: write to output file if true or histfreq_unit value
       !---------------------------------------------------------------
 
       character (len=max_nstrm), public :: &
@@ -89,8 +89,9 @@
 
       subroutine init_hist_mechred_2D
 
+      use ice_calendar, only: lower_case
       use ice_broadcast, only: broadcast_scalar
-      use ice_calendar, only: nstreams, histfreq
+      use ice_calendar, only: nstreams, histfreq_unit
       use ice_communicate, only: my_task, master_task
       use ice_history_shared, only: tstr2D, tcstr, define_hist_field
       use ice_fileunits, only: goto_nml
@@ -150,6 +151,29 @@
 
          close(nu_nml)
          call release_fileunit(nu_nml)
+
+         ! history frequency flags are not case sensitive
+         f_ardg = lower_case(f_ardg)
+         f_vrdg = lower_case(f_vrdg)
+         f_alvl = lower_case(f_alvl)
+         f_vlvl = lower_case(f_vlvl)
+         f_dardg1dt = lower_case(f_dardg1dt)
+         f_dardg2dt = lower_case(f_dardg2dt)
+         f_dvirdgdt = lower_case(f_dvirdgdt)
+         f_opening = lower_case(f_opening)
+         f_ardgn = lower_case(f_ardgn)
+         f_vrdgn = lower_case(f_vrdgn)
+         f_dardg1ndt = lower_case(f_dardg1ndt)
+         f_dardg2ndt = lower_case(f_dardg2ndt)
+         f_dvirdgndt = lower_case(f_dvirdgndt)
+         f_aparticn = lower_case(f_aparticn)
+         f_krdgn = lower_case(f_krdgn)
+         f_aredistn = lower_case(f_aredistn)
+         f_vredistn = lower_case(f_vredistn)
+         f_araftn = lower_case(f_araftn)
+         f_vraftn = lower_case(f_vraftn)
+         f_sirdgconc = lower_case(f_sirdgconc)
+         f_sirdgthick = lower_case(f_sirdgthick)
       endif
 
       if (.not. tr_lvl) then
@@ -191,7 +215,7 @@
       ! 2D variables
 
       do ns = 1, nstreams
-      if (histfreq(ns) /= 'x') then
+      if (histfreq_unit(ns) /= 'x') then
 
       if (f_alvl(1:1) /= 'x') &
          call define_hist_field(n_alvl,"alvl","1",tstr2D, tcstr, &
@@ -252,7 +276,7 @@
              c1, c0,                                                         &
              ns, f_sirdgthick, avg_ice_present='ridge', mask_ice_free_points=.true.)
 
-      endif ! histfreq(ns) /= 'x'
+      endif ! histfreq_unit(ns) /= 'x'
       enddo ! nstreams
 
       end subroutine init_hist_mechred_2D
@@ -261,7 +285,7 @@
 
       subroutine init_hist_mechred_3Dc
 
-      use ice_calendar, only: nstreams, histfreq
+      use ice_calendar, only: nstreams, histfreq_unit
       use ice_history_shared, only: tstr3Dc, tcstr, define_hist_field
 
       integer (kind=int_kind) :: ns
@@ -278,7 +302,7 @@
          file=__FILE__, line=__LINE__)
 
       do ns = 1, nstreams
-      if (histfreq(ns) /= 'x') then
+      if (histfreq_unit(ns) /= 'x') then
 
        if (f_ardgn(1:1) /= 'x') &
            call define_hist_field(n_ardgn,"ardgn","1",tstr3Dc, tcstr, &
@@ -346,7 +370,7 @@
              "none", c1, c0,                                       &
              ns, f_vraftn)
 
-      endif ! histfreq(ns) /= 'x'
+      endif ! histfreq_unit(ns) /= 'x'
       enddo ! ns
 
       end subroutine init_hist_mechred_3Dc

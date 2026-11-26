@@ -25,7 +25,7 @@
           field_loc_Eface, field_loc_Nface, &
           field_type_scalar, field_type_vector
       use ice_restart_shared, only: restart_dir, pointer_file, &
-          runid, use_restart_time, lenstr, restart_coszen, restart_mod
+          use_restart_time, lenstr, restart_coszen, restart_mod
       use ice_restart
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag, nu_rst_pointer, nu_restart, nu_dump
@@ -282,7 +282,7 @@
 
       use ice_boundary, only: ice_HaloUpdate_stress
       use ice_blocks, only: nghost, nx_block, ny_block, ns_boundary_type
-      use ice_calendar, only: istep0, npt, calendar
+      use ice_calendar, only: istep0, calendar
       use ice_domain, only: nblocks, halo_info
       use ice_domain_size, only: nilyr, nslyr, ncat, &
           max_blocks
@@ -721,11 +721,6 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      ! if runid is bering then need to correct npt for istep0
-      if (trim(runid) == 'bering') then
-         npt = npt - istep0
-      endif
-
       !-----------------------------------------------------------------
       ! update concentration from a file
       !-----------------------------------------------------------------
@@ -808,7 +803,7 @@
       use ice_boundary, only: ice_HaloUpdate_stress
       use ice_broadcast, only: broadcast_scalar
       use ice_blocks, only: nghost, nx_block, ny_block, ns_boundary_type
-      use ice_calendar, only: istep0, istep1, timesecs, calendar, npt, &
+      use ice_calendar, only: istep0, istep1, timesecs, calendar, &
           set_date_from_timesecs
       use ice_domain, only: nblocks, halo_info
       use ice_domain_size, only: nilyr, nslyr, ncat, nx_global, ny_global, &
@@ -1173,11 +1168,6 @@
       call dumpfile(filename)
       call final_restart
       ! stop
-
-      ! if runid is bering then need to correct npt for istep0
-      if (trim(runid) == 'bering') then
-         npt = npt - istep0
-      endif
 
       end subroutine restartfile_v4
 

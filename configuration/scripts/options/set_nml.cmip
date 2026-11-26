@@ -1,4 +1,4 @@
-    histfreq           = 'm','d','n','x','x'
+    histfreq_unit      = 'm','d','n','x','x'
     histfreq_n         =  1,1,15,1,1
     hist_avg           = .true.,.true.,.false.,.false,.false.
     f_aice             = 'md'

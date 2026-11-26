@@ -30,7 +30,7 @@
                 accum_hist_bgc, init_history_bgc
 
       !---------------------------------------------------------------
-      ! flags: write to output file if true or histfreq value
+      ! flags: write to output file if true or histfreq_unit value
       !---------------------------------------------------------------
       ! specified in input_templates
       !--------------------------------------------------------------
@@ -257,8 +257,9 @@
 
       subroutine init_hist_bgc_2D
 
+      use ice_calendar, only: lower_case
       use ice_broadcast, only: broadcast_scalar
-      use ice_calendar, only: nstreams, histfreq
+      use ice_calendar, only: nstreams, histfreq_unit
       use ice_communicate, only: my_task, master_task
       use ice_history_shared, only: tstr2D, tcstr, define_hist_field, &
           f_fsalt, f_fsalt_ai, f_sice
@@ -335,6 +336,49 @@
 
          close(nu_nml)
          call release_fileunit(nu_nml)
+
+         ! history frequency flags are not case sensitive
+         f_fiso_atm = lower_case(f_fiso_atm)
+         f_fiso_ocn = lower_case(f_fiso_ocn)
+         f_iso = lower_case(f_iso)
+         f_faero_atm = lower_case(f_faero_atm)
+         f_faero_ocn = lower_case(f_faero_ocn)
+         f_aero = lower_case(f_aero)
+         f_fbio = lower_case(f_fbio)
+         f_fbio_ai = lower_case(f_fbio_ai)
+         f_zaero = lower_case(f_zaero)
+         f_bgc_S = lower_case(f_bgc_S)
+         f_bgc_N = lower_case(f_bgc_N)
+         f_bgc_C = lower_case(f_bgc_C)
+         f_bgc_DOC = lower_case(f_bgc_DOC)
+         f_bgc_DIC = lower_case(f_bgc_DIC)
+         f_bgc_chl = lower_case(f_bgc_chl)
+         f_bgc_Nit = lower_case(f_bgc_Nit)
+         f_bgc_Am = lower_case(f_bgc_Am)
+         f_bgc_Sil = lower_case(f_bgc_Sil)
+         f_bgc_DMSPp = lower_case(f_bgc_DMSPp)
+         f_bgc_DMSPd = lower_case(f_bgc_DMSPd)
+         f_bgc_DMS = lower_case(f_bgc_DMS)
+         f_bgc_DON = lower_case(f_bgc_DON)
+         f_bgc_Fe = lower_case(f_bgc_Fe)
+         f_bgc_hum = lower_case(f_bgc_hum)
+         f_bgc_PON = lower_case(f_bgc_PON)
+         f_bgc_ml = lower_case(f_bgc_ml)
+         f_upNO = lower_case(f_upNO)
+         f_upNH = lower_case(f_upNH)
+         f_bTin = lower_case(f_bTin)
+         f_bphi = lower_case(f_bphi)
+         f_iDi = lower_case(f_iDi)
+         f_iki = lower_case(f_iki)
+         f_fbri = lower_case(f_fbri)
+         f_hbri = lower_case(f_hbri)
+         f_zfswin = lower_case(f_zfswin)
+         f_grownet = lower_case(f_grownet)
+         f_bionet = lower_case(f_bionet)
+         f_biosnow = lower_case(f_biosnow)
+         f_PPnet = lower_case(f_PPnet)
+         f_algalpeak = lower_case(f_algalpeak)
+         f_zbgc_frac = lower_case(f_zbgc_frac)
       endif
 
       if (.not. tr_iso) then
@@ -769,7 +813,7 @@
      if (tr_iso .or. tr_aero .or. tr_brine .or. skl_bgc) then
 
      do ns = 1, nstreams
-       if (histfreq(ns) /= 'x') then
+       if (histfreq_unit(ns) /= 'x') then
 
       if (f_iso(1:1) /= 'x') then
          do n=1,n_iso
@@ -1742,7 +1786,7 @@
              "distance from ice bottom to brine surface", c1, c0,       &
              ns, f_hbri)
 
-       endif ! histfreq(ns) /= 'x'
+       endif ! histfreq_unit(ns) /= 'x'
      enddo ! nstreams
 
      endif ! tr_aero, etc
@@ -1753,7 +1797,7 @@
 
       subroutine init_hist_bgc_3Dc
 
-      use ice_calendar, only: nstreams, histfreq
+      use ice_calendar, only: nstreams, histfreq_unit
       use ice_history_shared, only: tstr3Dc, tcstr, define_hist_field
 
       integer (kind=int_kind) :: ns
@@ -1769,12 +1813,12 @@
 
       ! 3D (category) variables must be looped separately
       do ns = 1, nstreams
-         if (histfreq(ns) /= 'x') then
+         if (histfreq_unit(ns) /= 'x') then
            if (f_fbri(1:1) /= 'x') &
            call define_hist_field(n_fbri,"fbrine","1",tstr3Dc, tcstr, &
              "brine tracer fraction of ice volume, cat",             &
              "none", c1, c0, ns, f_fbri)
-         endif ! histfreq /= 'x'
+         endif ! histfreq_unit /= 'x'
       enddo ! ns
 
       endif ! tr_brine
@@ -1785,7 +1829,7 @@
 
       subroutine init_hist_bgc_3Db
 
-      use ice_calendar, only: nstreams,histfreq
+      use ice_calendar, only: nstreams,histfreq_unit
       use ice_history_shared, only: tstr3Db, tcstr, define_hist_field
 
       integer (kind=int_kind) :: ns
@@ -1804,7 +1848,7 @@
      if (z_tracers) then
 
       do ns = 1, nstreams
-         if (histfreq(ns) /= 'x') then
+         if (histfreq_unit(ns) /= 'x') then
 
          if (f_bTin(1:1) /= 'x') &
             call define_hist_field(n_bTin,"bTizn","C",tstr3Db, tcstr, &
@@ -1832,7 +1876,7 @@
                 "internal ice PAR", "on bio interface grid", c1, c0, &
                 ns, f_zfswin)
 
-         endif ! histfreq(ns) /= 'x'
+         endif ! histfreq_unit(ns) /= 'x'
       enddo  ! ns
 
      endif  ! z_tracers
@@ -3137,7 +3181,7 @@
 
       subroutine init_hist_bgc_3Da
 
-      use ice_calendar, only: nstreams, histfreq
+      use ice_calendar, only: nstreams, histfreq_unit
       use ice_history_shared, only: tstr3Da, tcstr, define_hist_field
 
       integer (kind=int_kind) :: ns, n
@@ -3156,7 +3200,7 @@
      if (z_tracers) then
 
      do ns = 1, nstreams
-       if (histfreq(ns) /= 'x') then
+       if (histfreq_unit(ns) /= 'x') then
 
 !----------------------------------------------------------------------------
 ! snow+bio grid ==>
@@ -3380,7 +3424,7 @@
                 "other bulk nitrogen pool in cat 1", "snow+bio grid", c1, c0, &
                 ns, f_bgc_PON_cat1)
 
-       endif ! histfreq(ns) /= 'x'
+       endif ! histfreq_unit(ns) /= 'x'
     enddo  !ns
 
     endif ! z_tracers

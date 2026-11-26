@@ -45,7 +45,7 @@
 
       subroutine init_restart_read(ice_ic)
 
-      use ice_calendar, only: istep0, istep1, timesecs, npt, myear, &
+      use ice_calendar, only: istep0, istep1, timesecs, myear, &
           set_date_from_timesecs
       use ice_dyn_shared, only: kdyn
       use ice_read_write, only: ice_open, ice_open_ext
@@ -361,11 +361,6 @@
             read (nu_restart_aero) iignore,rignore,rignore
             write(nu_diag,*) 'Reading ',filename(1:lenstr(filename))
          endif
-      endif
-
-      ! if runid is bering then need to correct npt for istep0
-      if (trim(runid) == 'bering') then
-         npt = npt - istep0
       endif
 
       end subroutine init_restart_read

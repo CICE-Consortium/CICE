@@ -7,14 +7,15 @@
 !   divu, shear, vort, sig1, sig2, sigP, trsig, mlt_onset,
 !   frz_onset, hisnap, aisnap
 !
-! Options for histfreq: '1','h','d','m','y','x', where x means that
-!   output stream will not be used (recommended for efficiency).
+! Options for histfreq_unit: '1','h','d','m','y','n','x', where n means
+!   day histfreq_n of each month and x means that the output stream will
+!   not be used (recommended for efficiency).
 ! histfreq_n can be any nonnegative integer, where 0 means that the
-!   corresponding histfreq frequency will not be used.
-! The flags (f_<field>) can be set to '1','h','d','m','y' or 'x', where
-!   n means the field will not be written.  To output the same field at
+!   corresponding histfreq_unit frequency will not be used.
+! The flags (f_<field>) can be set to '1','h','d','m','y','n' or 'x', where
+!   x means the field will not be written.  To output the same field at
 !   more than one frequency, for instance monthy and daily, set
-!   f_<field> = 'md'.
+!   f_<field> = 'md'.  histfreq_unit and the flags accept upper or lower case.
 !
 ! authors Tony Craig and Bruce Briegleb, NCAR
 !         Elizabeth C. Hunke and William H. Lipscomb, LANL
@@ -193,7 +194,7 @@
          estr2D  = 'ELON ELAT time'          ! vcoord for E cell, 2D
 
       !---------------------------------------------------------------
-      ! flags: write to output file if true or histfreq value
+      ! flags: write to output file if true or histfreq_unit value
       !---------------------------------------------------------------
 
       logical (kind=log_kind), public :: &
@@ -780,7 +781,7 @@
       subroutine construct_filename(ncfile,suffix,ns,option)
 
       use ice_calendar, only: msec, myear, mmonth, daymo,  &
-                              mday, write_ic, histfreq, histfreq_n, &
+                              mday, write_ic, histfreq_unit, histfreq_n, &
                               new_year, new_month, new_day, &
                               dt
       use ice_restart_shared, only: lenstr
@@ -821,12 +822,12 @@
 
         elseif (loption == 'histrest') then
            write(ncfile,'(a,i4.4,a,i2.2,a,i2.2,a,i5.5,a,a)')  &
-                 history_file(1:lenstr(history_file))//trim(cstream)//'_r'//trim(histfreq(ns))//'.', &
+                 history_file(1:lenstr(history_file))//trim(cstream)//'_r'//trim(histfreq_unit(ns))//'.', &
                  iyear,'-',imonth,'-',iday,'-',msec,'.',trim(suffix)
         else
 
            if (hist_avg(ns)) then
-              if (histfreq(ns) == '1' .or. histfreq(ns) == 'h'.or.histfreq(ns) == 'H') then
+              if (histfreq_unit(ns) == '1' .or. histfreq_unit(ns) == 'h') then
                  ! do nothing
               elseif (new_year) then
                  iyear = iyear - 1
@@ -841,38 +842,38 @@
            endif
 
            if (hist_avg(ns)) then    ! write averaged data
-              if (histfreq(ns) == '1' .and. histfreq_n(ns) == 1)  then ! timestep
+              if (histfreq_unit(ns) == '1' .and. histfreq_n(ns) == 1)  then ! timestep
                  write(ncfile,'(a,a,i4.4,a,i2.2,a,i2.2,a,i5.5,a,a)')  &
                        history_file(1:lenstr(history_file))//trim(cstream),'_inst.', &
                        iyear,'-',imonth,'-',iday,'-',msec,'.',trim(suffix)
-              elseif (histfreq(ns) == '1' .and. histfreq_n(ns) > 1)  then ! timestep
+              elseif (histfreq_unit(ns) == '1' .and. histfreq_n(ns) > 1)  then ! timestep
                  write(ncfile,'(a,a,i4.4,a,i2.2,a,i2.2,a,i5.5,a,a)')  &
                        history_file(1:lenstr(history_file))//trim(cstream),'.', &
                        iyear,'-',imonth,'-',iday,'-',msec,'.',trim(suffix)
-              elseif (histfreq(ns) == 'h'.or.histfreq(ns) == 'H') then ! hourly
+              elseif (histfreq_unit(ns) == 'h') then ! hourly
                  write(ncfile,'(a,a,i2.2,a,i4.4,a,i2.2,a,i2.2,a,i5.5,a,a)')  &
                        history_file(1:lenstr(history_file))//trim(cstream),'_', &
                        histfreq_n(ns),'h.',iyear,'-',imonth,'-',iday,'-',msec,'.',trim(suffix)
-              elseif (histfreq(ns) == 'd'.or.histfreq(ns) == 'D') then ! daily
+              elseif (histfreq_unit(ns) == 'd') then ! daily
                  write(ncfile,'(a,a,i4.4,a,i2.2,a,i2.2,a,a)')  &
                        history_file(1:lenstr(history_file))//trim(cstream),'.', &
                        iyear,'-',imonth,'-',iday,'.',trim(suffix)
-              elseif (histfreq(ns) == 'm'.or.histfreq(ns) == 'M') then ! monthly
+              elseif (histfreq_unit(ns) == 'm') then ! monthly
                  write(ncfile,'(a,a,i4.4,a,i2.2,a,a)')  &
                        history_file(1:lenstr(history_file))//trim(cstream),'.', &
                        iyear,'-',imonth,'.',trim(suffix)
-              elseif (histfreq(ns) == 'y'.or.histfreq(ns) == 'Y') then ! yearly
+              elseif (histfreq_unit(ns) == 'y') then ! yearly
                  write(ncfile,'(a,a,i4.4,a,a)') &
                        history_file(1:lenstr(history_file))//trim(cstream),'.', &
                        iyear,'.',trim(suffix)
-              elseif (histfreq(ns) == 'g') then
+              elseif (histfreq_unit(ns) == 'g') then
                  write(ncfile,'(a,a,a,a)')  &
                        history_file(1:lenstr(history_file)),'_grid', &
                        '.',trim(suffix)
               endif
 
            else                     ! instantaneous
-              if (histfreq(ns) == 'g') then
+              if (histfreq_unit(ns) == 'g') then
                  write(ncfile,'(a,a,a,a)')  &
                        history_file(1:lenstr(history_file)),'_grid', &
                        '.',trim(suffix)
@@ -919,7 +920,7 @@
                                    vdesc, vcomment, cona, conb, &
                                    ns, vhistfreq, avg_ice_present, mask_ice_free_points)
 
-      use ice_calendar, only: histfreq, histfreq_n
+      use ice_calendar, only: histfreq_unit, histfreq_n
 
       integer (int_kind), dimension(:), intent(out) :: &  ! max_nstrm
          id                ! location in avail_fields array for use in
@@ -968,15 +969,20 @@
       if(present(avg_ice_present)) l_avg_ice_present = avg_ice_present
       if(present(mask_ice_free_points)) l_mask_ice_free_points = mask_ice_free_points
 
-      if (histfreq(ns) == 'x') then
-         call abort_ice(subname//' ERROR: define_hist_fields has histfreq x')
+      if (histfreq_unit(ns) == 'x') then
+         call abort_ice(subname//' ERROR: define_hist_fields has histfreq_unit x')
       endif
 
       if (ns == 1) id(:) = 0
       lenf = len(trim(vhistfreq))
 
+      if (verify(vhistfreq(1:lenf), '1hdmynx') /= 0) then
+         call abort_ice(subname//' ERROR: f_' // trim(vname) // ' = ' // trim(vhistfreq) // &
+            ', allowed values: 1,h,d,m,y,n,x', file=__FILE__, line=__LINE__)
+      endif
+
       do ns1 = 1, lenf
-         if (vhistfreq(ns1:ns1) == histfreq(ns)) then
+         if (vhistfreq(ns1:ns1) == histfreq_unit(ns)) then
 
             if (ns1 > 1 .and. index(vhistfreq(1:ns1-1),'x') /= 0) then
                call abort_ice(subname//' ERROR: history frequency variable f_' // vname // ' can''t contain ''x'' along with active frequencies')

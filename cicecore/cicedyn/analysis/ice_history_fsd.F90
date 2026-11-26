@@ -23,7 +23,7 @@
                 init_hist_fsd_4Df
 
       !---------------------------------------------------------------
-      ! flags: write to output file if true or histfreq value
+      ! flags: write to output file if true or histfreq_unit value
       !---------------------------------------------------------------
 
       character (len=max_nstrm), public :: &
@@ -72,6 +72,7 @@
 
       subroutine init_hist_fsd_2D
 
+      use ice_calendar, only: lower_case
       use ice_broadcast, only: broadcast_scalar
       use ice_calendar, only: nstreams
       use ice_communicate, only: my_task, master_task
@@ -134,6 +135,21 @@
 
          close(nu_nml)
          call release_fileunit(nu_nml)
+
+         ! history frequency flags are not case sensitive
+         f_afsd = lower_case(f_afsd)
+         f_afsdn = lower_case(f_afsdn)
+         f_dafsd_newi = lower_case(f_dafsd_newi)
+         f_dafsd_latg = lower_case(f_dafsd_latg)
+         f_dafsd_latm = lower_case(f_dafsd_latm)
+         f_dafsd_wave = lower_case(f_dafsd_wave)
+         f_dafsd_weld = lower_case(f_dafsd_weld)
+         f_wave_sig_ht = lower_case(f_wave_sig_ht)
+         f_aice_ww = lower_case(f_aice_ww)
+         f_diam_ww = lower_case(f_diam_ww)
+         f_hice_ww = lower_case(f_hice_ww)
+         f_fsdrad = lower_case(f_fsdrad)
+         f_fsdperim = lower_case(f_fsdperim)
       endif
 
       call broadcast_scalar (f_afsd, master_task)
@@ -212,7 +228,7 @@
 
       subroutine init_hist_fsd_3Df
 
-      use ice_calendar, only: nstreams, histfreq
+      use ice_calendar, only: nstreams, histfreq_unit
       use ice_history_shared, only: tstr3Df, tcstr, define_hist_field
 
       logical (kind=log_kind) :: tr_fsd
@@ -231,7 +247,7 @@
       if (tr_fsd) then
 
       do ns = 1, nstreams
-         if (histfreq(ns) /= 'x') then
+         if (histfreq_unit(ns) /= 'x') then
 
          if (f_afsd(1:1) /= 'x') &
             call define_hist_field(n_afsd,"afsd", "1/m", tstr3Df, tcstr, &
@@ -257,7 +273,7 @@
             call define_hist_field(n_dafsd_weld,"dafsd_weld","1/s",tstr3Df, tcstr, &
                "Change in fsd: welding",                       &
                "Avg over freq period", c1, c0, ns, f_dafsd_weld)
-         endif ! if (histfreq(ns) /= 'x')
+         endif ! if (histfreq_unit(ns) /= 'x')
       enddo ! ns
 
       endif ! tr_fsd
@@ -268,7 +284,7 @@
 
       subroutine init_hist_fsd_4Df
 
-      use ice_calendar, only: nstreams, histfreq
+      use ice_calendar, only: nstreams, histfreq_unit
       use ice_history_shared, only: tstr4Df, tcstr, define_hist_field
 
       logical (kind=log_kind) :: tr_fsd
@@ -287,14 +303,14 @@
       if (tr_fsd) then
 
       do ns = 1, nstreams
-         if (histfreq(ns) /= 'x') then
+         if (histfreq_unit(ns) /= 'x') then
 
          if (f_afsdn(1:1) /= 'x') &
             call define_hist_field(n_afsdn,"afsdn","1/m",tstr4Df, tcstr, &
                "areal floe size and thickness distribution",    &
                "per unit bin width", c1, c0, ns, f_afsdn)
 
-         endif ! if (histfreq(ns) /= 'x') then
+         endif ! if (histfreq_unit(ns) /= 'x') then
       enddo ! ns
 
       endif ! tr_fsd

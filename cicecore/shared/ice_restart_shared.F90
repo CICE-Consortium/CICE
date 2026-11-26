@@ -20,7 +20,7 @@
       character (len=char_len_long), public :: &
          restart_file  , & ! output file for restart dump
          restart_dir   , & ! directory name for restart dump
-         runid             ! identifier for CESM coupled run or bering
+         runid             ! identifier for CESM coupled run
 
       character (len=char_len_long), public :: &
          pointer_file      ! input pointer file for restarts

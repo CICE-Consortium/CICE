@@ -1,5 +1,5 @@
     grid_outfile = .true.
-    histfreq       = 'm','d','1','h','x'
+    histfreq_unit  = 'm','d','1','h','x'
     histfreq_n     =  1,2,6,4,1
     histfreq_base  =  'zero','zero','zero','zero','zero'
     write_ic       = .true.

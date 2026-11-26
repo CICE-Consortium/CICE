@@ -49,6 +49,7 @@
       public :: calendar_time2date   ! convert time to date relative to init date
       public :: calendar_sec2hms     ! convert seconds to hour, minute, seconds
       public :: compute_calendar_data ! compute info about calendar for a given year
+      public :: lower_case           ! lower case copy of a frequency unit string
 
       ! private functions
       private :: set_calendar          ! sets model calendar type (noleap, etc)
@@ -98,11 +99,11 @@
          idate0   , & ! initial date (yyyymmdd), associated with year_init, month_init, day_init
          dayyr    , & ! number of days in the current year
          npt      , & ! total number of time steps (dt)
-         npt0     , & ! original npt value in npt0_unit
+         runlen_n , & ! run length in runlen_unit
          ndtd = 1 , & ! number of dynamics subcycles: dt_dyn=dt/ndtd
          stop_now     , & ! if 1, end program execution
          write_restart, & ! if 1, write restart now
-         diagfreq     , & ! diagnostic output frequency (10 = once per 10 dt)
+         diagfreq_n   , & ! diagnostic output frequency (10 = once per 10 dt)
          nstreams     , & ! number of history output streams
          dumpfreq_n(max_nstrm), & ! restart output frequency (10 = once per 10 d,m,y)
          histfreq_n(max_nstrm)    ! history output frequency
@@ -129,10 +130,9 @@
          write_history(max_nstrm) ! write history now
 
       character (len=2), public :: &
-         npt_unit,            & ! run length unit, 'y', 'm', 'd', 'h', 's', '1'
-         npt0_unit,           & ! original run length unit, 'y', 'm', 'd', 'h', 's', '1'
-         histfreq(max_nstrm), & ! history output frequency, 'y','m','d','h','1','x'
-         dumpfreq(max_nstrm)    ! restart frequency, 'y','m','d', h', '1', 'x' followed by optional 1
+         runlen_unit = '1',        & ! run length unit, 'y', 'm', 'd', 'h', 's', '1'
+         histfreq_unit(max_nstrm), & ! history output unit, 'y','m','d','h','n','1','x'
+         dumpfreq_unit(max_nstrm)    ! restart unit, 'y','m','d','h','1','x', optionally followed by 1
 
       character (len=char_len), public :: &
          dumpfreq_base(max_nstrm), & ! restart frequency basetime ('zero', 'init')
@@ -147,6 +147,9 @@
 
       integer (kind=int_kind) :: &
          hour         ! hour of the day
+
+      logical (kind=log_kind) :: &
+         timesteps_calculated = .false. ! npt has been set from runlen_n and runlen_unit
 
       integer (kind=int_kind), parameter :: &
          myear_max = 200000           ! maximum year, limited by integer overflow in elapsed_hours
@@ -250,8 +253,7 @@
 
 !=======================================================================
 ! Initialize timestep counter
-! This converts npt_unit and npt to a number of timesteps stored in npt
-! npt0 and npt0_unit remember the original values
+! This converts runlen_n and runlen_unit to a number of timesteps stored in npt
 ! It is safe to call this more than once, but it should be called only after
 ! the initial model run date is known (from namelist or restart) and before
 ! the first timestep
@@ -272,39 +274,36 @@
       monthe = mmonth
       daye = mday
       sece = msec
-      npt0 = npt
-      npt0_unit = npt_unit
-
-      if (npt_unit == 'y') then
-         call update_date(yeare,monthe,daye,sece,dyear=npt)
+      if (runlen_unit == 'y') then
+         call update_date(yeare,monthe,daye,sece,dyear=runlen_n)
          call calendar_date2time(yeare,monthe,daye,sece,dtimesecs,myear,mmonth,mday,msec)
-      elseif (npt_unit == 'm') then
-         call update_date(yeare,monthe,daye,sece,dmon=npt)
+      elseif (runlen_unit == 'm') then
+         call update_date(yeare,monthe,daye,sece,dmon=runlen_n)
          call calendar_date2time(yeare,monthe,daye,sece,dtimesecs,myear,mmonth,mday,msec)
-      elseif (npt_unit == 'd') then
-         dtimesecs = real(npt,kind=dbl_kind)*secday
-         call update_date(yeare,monthe,daye,sece,dday=npt)
-      elseif (npt_unit == 'h') then
-         dtimesecs = real(npt,kind=dbl_kind)*secday/real(hours_per_day,kind=dbl_kind)
+      elseif (runlen_unit == 'd') then
+         dtimesecs = real(runlen_n,kind=dbl_kind)*secday
+         call update_date(yeare,monthe,daye,sece,dday=runlen_n)
+      elseif (runlen_unit == 'h') then
+         dtimesecs = real(runlen_n,kind=dbl_kind)*secday/real(hours_per_day,kind=dbl_kind)
          call update_date(yeare,monthe,daye,sece,dsec=nint(dtimesecs))
-      elseif (npt_unit == 's') then
-         call update_date(yeare,monthe,daye,sece,dsec=npt)
-         dtimesecs = real(npt,kind=dbl_kind)
-      elseif (npt_unit == '1') then
-         dtimesecs = dt*real(npt,kind=dbl_kind)
+      elseif (runlen_unit == 's') then
+         call update_date(yeare,monthe,daye,sece,dsec=runlen_n)
+         dtimesecs = real(runlen_n,kind=dbl_kind)
+      elseif (runlen_unit == '1') then
+         dtimesecs = dt*real(runlen_n,kind=dbl_kind)
          call update_date(yeare,monthe,daye,sece,dsec=nint(dtimesecs))
       else
-         write(nu_diag,*) trim(subname),' ERROR invalid npt_unit = ',trim(npt_unit)
-         call abort_ice(subname//'ERROR: invalid npt_unit')
+         write(nu_diag,*) trim(subname),' ERROR invalid runlen_unit = ',trim(runlen_unit)
+         call abort_ice(subname//'ERROR: invalid runlen_unit')
       endif
 
       npt = nint(dtimesecs/dt)
-      npt_unit = '1'
+      timesteps_calculated = .true.
 
       if (my_task == master_task) then
          write(nu_diag,*) ' '
-         write(nu_diag,'(1x,2a,i9,a,f13.2)') subname,' modified npt from ',npt0,' '//trim(npt0_unit)//' with dt= ',dt
-         write(nu_diag,'(1x,2a,i9,a,f13.2)') subname,'                to ',npt ,' '//trim(npt_unit )//' with dt= ',dt
+         write(nu_diag,'(1x,2a,i9,a,f13.2)') subname,' run length ',runlen_n,' '//trim(runlen_unit)//' with dt= ',dt
+         write(nu_diag,'(1x,2a,i9,a,f13.2)') subname,'         is ',npt ,' timesteps with dt= ',dt
          write(nu_diag,'(1x,2a,i6.4,a,i2.2,a,i2.2,a,i5.5)') subname,' start time is',myear,'-',mmonth,'-',mday,':',msec
          write(nu_diag,'(1x,2a,i6.4,a,i2.2,a,i2.2,a,i5.5)') subname,'   end time is',yeare,'-',monthe,'-',daye,':',sece
          write(nu_diag,*) ' '
@@ -329,10 +328,13 @@
          idt       ! integer dt
       character(len=*),parameter :: subname='(advance_timestep)'
 
-      if (trim(npt_unit) /= '1') then
-         write(nu_diag,*) trim(subname),' ERROR npt_unit should be converted to timesteps by now ',trim(npt_unit)
-         write(nu_diag,*) trim(subname),' ERROR you may need to call calc_timesteps to convert from other units'
-         call abort_ice(subname//'ERROR: npt_unit incorrect')
+      ! some drivers use npt = runlen_n and ignore runlen_unit (as they don't call
+      ! calc_timesteps).  Guard against misconfiguration where a user thinks they are
+      ! using runlen_unit but the driver is ignoring it.
+      if (trim(runlen_unit) /= '1' .and. .not. timesteps_calculated) then
+         write(nu_diag,*) trim(subname),' ERROR runlen_unit = ',trim(runlen_unit)
+         write(nu_diag,*) trim(subname),' ERROR runlen_unit must be 1 unless the driver calls calc_timesteps'
+         call abort_ice(subname//'ERROR: runlen_unit must be 1 without calc_timesteps')
       endif
 
       istep = istep + 1
@@ -428,28 +430,28 @@
 
          call compute_relative_elapsed(histfreq_base(ns), elapsed_years, elapsed_months, elapsed_days, elapsed_hours)
 
-         select case (histfreq(ns))
-         case ("y", "Y")
+         select case (histfreq_unit(ns))
+         case ("y")
             if (new_year  .and. histfreq_n(ns)/=0) then
                if (mod(elapsed_years, histfreq_n(ns))==0) &
                    write_history(ns) = .true.
             endif
-         case ("m", "M")
+         case ("m")
             if (new_month .and. histfreq_n(ns)/=0) then
                if (mod(elapsed_months,histfreq_n(ns))==0) &
                    write_history(ns) = .true.
             endif
-         case ("d", "D")
+         case ("d")
             if (new_day  .and. histfreq_n(ns)/=0) then
                if (mod(elapsed_days,histfreq_n(ns))==0) &
                    write_history(ns) = .true.
             endif
-         case ("n", "N")
+         case ("n")
             if (new_day  .and. histfreq_n(ns)/=0) then
                if (mday == histfreq_n(ns)) &
                    write_history(ns) = .true.
             endif
-         case ("h", "H")
+         case ("h")
             if (new_hour  .and. histfreq_n(ns)/=0) then
                if (mod(elapsed_hours,histfreq_n(ns))==0) &
                    write_history(ns) = .true.
@@ -466,44 +468,44 @@
 
       enddo
 
-      ! Restart writing flag, set dumpfreq to 'x" if stream is written once
+      ! Restart writing flag, set dumpfreq_unit to 'x" if stream is written once
 
       do ns = 1, max_nstrm
 
          call compute_relative_elapsed(dumpfreq_base(ns), elapsed_years, elapsed_months, elapsed_days, elapsed_hours)
 
-         select case (dumpfreq(ns)(1:1))
-         case ("y", "Y")
+         select case (dumpfreq_unit(ns)(1:1))
+         case ("y")
             if (new_year  .and. mod(elapsed_years, dumpfreq_n(ns))==0) then
                write_restart = 1
-               if (dumpfreq(ns)(2:2) == '1') dumpfreq(ns) = 'x'
+               if (dumpfreq_unit(ns)(2:2) == '1') dumpfreq_unit(ns) = 'x'
             endif
-         case ("m", "M")
+         case ("m")
             if (new_month .and. mod(elapsed_months,dumpfreq_n(ns))==0) then
                write_restart = 1
-               if (dumpfreq(ns)(2:2) == '1') dumpfreq(ns) = 'x'
+               if (dumpfreq_unit(ns)(2:2) == '1') dumpfreq_unit(ns) = 'x'
             endif
-         case ("d", "D")
+         case ("d")
             if (new_day   .and. mod(elapsed_days,  dumpfreq_n(ns))==0) then
                write_restart = 1
-               if (dumpfreq(ns)(2:2) == '1') dumpfreq(ns) = 'x'
+               if (dumpfreq_unit(ns)(2:2) == '1') dumpfreq_unit(ns) = 'x'
             endif
-         case ("h", "H")
+         case ("h")
             if (new_hour  .and. mod(elapsed_hours, dumpfreq_n(ns))==0) then
                write_restart = 1
-               if (dumpfreq(ns)(2:2) == '1') dumpfreq(ns) = 'x'
+               if (dumpfreq_unit(ns)(2:2) == '1') dumpfreq_unit(ns) = 'x'
             endif
          case ("1")
             if (mod(istep1, dumpfreq_n(ns))==0) then
                write_restart = 1
-               if (dumpfreq(ns)(2:2) == '1') dumpfreq(ns) = 'x'
+               if (dumpfreq_unit(ns)(2:2) == '1') dumpfreq_unit(ns) = 'x'
             endif
          end select
       enddo
 
       if (force_restart_now) write_restart = 1
 
-      if (my_task == master_task .and. mod(istep1,diagfreq) == 0 &
+      if (my_task == master_task .and. mod(istep1,diagfreq_n) == 0 &
                                  .and. stop_now /= 1) then
         write(nu_diag,*) ' '
         write(nu_diag,'(a7,i10,4x,a6,i10,4x,a4,i10)') &
@@ -1053,6 +1055,26 @@
 !      endif
 
        end subroutine compute_relative_elapsed
+
+!=======================================================================
+! Lower case copy of a string, used for the frequency unit namelist
+! settings and history field flags, which accept upper and lower case
+
+      elemental function lower_case(str)
+
+      character(len=*), intent(in) :: str
+      character(len=len(str)) :: lower_case
+
+      integer(kind=int_kind) :: n, ic
+
+      lower_case = str
+      do n = 1, len(str)
+         ic = iachar(str(n:n))
+         if (ic >= iachar('A') .and. ic <= iachar('Z')) &
+            lower_case(n:n) = achar(ic + iachar('a') - iachar('A'))
+      enddo
+
+      end function lower_case
 
 !=======================================================================
 

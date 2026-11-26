@@ -979,12 +979,21 @@ for instance, to write monthly data once a month on the 10th of the month.
 In the same way, quarterly data for Dec-Jan-Feb vs Jan-Feb-Mar
 is not easily controlled.  A better approach is to create monthly
 data and then to aggregate to quarters as a post-processing step.
-The history and restart (``histfreq``, ``dumpfreq``) setting `1` 
+The history and restart (``histfreq_unit``, ``dumpfreq_unit``) setting `1` 
 indicates output at a frequency of timesteps.  This is the character
 `1` as opposed to the integer 1.  This frequency output
 is computed using ``istep1``, the model timestep.  This
 may vary with each run depending on several factors including the
 model timestep, initial date, and value of ``istep0``.  
+
+The run length and frequency namelist settings follow the naming convention
+``<name>_unit``, ``<name>_n`` and, where available, ``<name>_base``, for
+instance ``runlen_unit`` and ``runlen_n`` for the run length and
+``histfreq_unit``, ``histfreq_n`` and ``histfreq_base`` for history.
+The unit settings and the history field flags (``f_<var>``) accept upper or lower case.  The older namelist names
+``npt_unit``, ``npt``, ``diagfreq``, ``histfreq`` and ``dumpfreq`` are deprecated.
+They are still accepted with a warning, but setting both the old and new
+name of a setting is an error.
 
 The model year is limited by some integer math.  In particular, calculation
 of elapsed hours in **ice_calendar.F90**, and the model year is
@@ -1316,7 +1325,7 @@ above.  In addition, ``history_format`` as well as other history namelist
 options control the specific file format as well as features related to 
 IO performance, see :ref:`iooverview`.
 
-The data is written at the period(s) given by ``histfreq`` and
+The data is written at the period(s) given by ``histfreq_unit`` and
 ``histfreq_n`` relative to a reference date specified by ``histfreq_base``.  
 The files are written to binary or netCDF files prepended by the ``history_file``
 and ``history_suffix``
@@ -1344,8 +1353,8 @@ collected in their own history modules (**ice_history_bgc.F90**,
 **ice_history_pond.F90**).
 
 The history modules allow output at different frequencies. Six output
-options (``1``, ``h``, ``d``, ``m``, ``y``, ``n``) are available simultaneously for ``histfreq``
-during a run, and each stream must have a unique value for ``histfreq``.  In other words, ``d``
+options (``1``, ``h``, ``d``, ``m``, ``y``, ``n``) are available simultaneously for ``histfreq_unit``
+during a run, and each stream must have a unique value for ``histfreq_unit``.  In other words, ``d``
 cannot be used by two different streams.  Each stream has an associated frequency
 set by ``histfreq_n``.  The frequency is
 relative to a reference date specified by the corresponding entry in ``histfreq_base``.
@@ -1358,7 +1367,7 @@ turns that history variable off.  For example, ``f_aice = 'md'`` will write aice
 monthly and daily streams.
 Grid variable history output flags are logicals and written to all stream files if
 turned on.  If there are no namelist flags
-with a given ``histfreq`` value, or if an element of ``histfreq_n`` is 0, then
+with a given ``histfreq_unit`` value, or if an element of ``histfreq_n`` is 0, then
 no file will be written at that frequency. The history filenames are set in
 the subroutine **construct_filename** in **ice_history_shared.F90**.  
 In cases where two streams produce the same identical filename, the model will
@@ -1373,7 +1382,7 @@ For example, in the namelist:
 
 ::
 
-  histfreq   = '1', 'h', 'd', 'm', 'y'
+  histfreq_unit = '1', 'h', 'd', 'm', 'y'
   histfreq_n =  1 ,  6 ,  0 ,  1 ,  1
   histfreq_base = 'zero','zero','zero','zero','zero'
   hist_avg      = .true.,.true.,.true.,.true.,.true.
@@ -1387,14 +1396,15 @@ For example, in the namelist:
 Here, ``hi`` will be written to a file on every timestep, ``hs`` will be
 written once every 6 hours, ``aice`` once a month, ``meltb`` once a month AND
 once every 6 hours, and ``Tsfc`` and ``iage`` will not be written.  All streams
-are time averaged over the interval although because one stream has ``histfreq=1`` and
+are time averaged over the interval although because one stream has ``histfreq_unit=1`` and
 ``histfreq_n=1``, that is equivalent to instantaneous output each model timestep.
 
 From an efficiency standpoint, it is best to set unused frequencies in
-``histfreq`` to ‘x’. Having output at all 5 frequencies takes nearly 5 times
+``histfreq_unit`` to ‘x’. Having output at all 5 frequencies takes nearly 5 times
 as long as for a single frequency. If you only want monthly output, the
-most efficient setting is ``histfreq`` = ’m’,’x’,’x’,’x’,’x’. The code counts
-the number of desired streams (``nstreams``) based on ``histfreq``.
+most efficient setting is ``histfreq_unit`` = ’m’,’x’,’x’,’x’,’x’. Streams that are
+not set in the namelist default to ‘x’. The code counts
+the number of desired streams (``nstreams``) based on ``histfreq_unit``.
 
 There is no restart capability built into the history implementation.  If the
 model stops in the middle of a history accumulation period, that data is lost
@@ -1478,7 +1488,7 @@ History Restart Files
 CICE has a history restart capability.  History restart files are needed and written when 
 a restart file is written while history fields are accumulating.  The implementation dumps 
 accumulated history data, one file per history stream, to the restart directory using
-a naming convention that uses the history filename, appends '_r' plus the ``histfreq`` character
+a naming convention that uses the history filename, appends '_r' plus the ``histfreq_unit`` character
 string and then appends the model time.  This occurs only for streams with 
 ``hist_avg = .true.`` and where the accumulator count is greater than zero when the data is 
 written.  Only accumulating data associated with the history stream is written.  This feature
@@ -1502,7 +1512,7 @@ for a restart run.
 Diagnostic Files
 ****************
 
-Like ``histfreq``, the parameter ``diagfreq`` can be used to regulate how often
+Like ``histfreq_unit``, the parameter ``diagfreq_n`` can be used to regulate how often
 output is written to a log file. The log file unit to which diagnostic
 output is written is set in **ice_fileunits.F90**. If ``diag_type`` =
 ‘stdout’, then it is written to standard out (or to **ice.log.[ID]** if
@@ -1533,7 +1543,7 @@ in detail at a particular (usually failing) grid point.
 Memory use diagnostics are controlled by the logical namelist ``memory_stats``.
 This feature uses an intrinsic query in C defined in **ice_memusage_gptl.c**.
 Memory diagnostics will be written at the the frequency defined by
-diagfreq.
+``diagfreq_n``.
 
 Timers are declared and initialized in **ice_timers.F90**, and the code
 to be timed is wrapped with calls to *ice_timer_start* and
@@ -1621,9 +1631,14 @@ The restart files created by CICE contain all of the variables needed
 for a full, exact restart. The filename begins with the character string
 defined by the ``restart_file`` namelist input, and the restart dump frequency 
 is given by the namelist
-variables ``dumpfreq`` and ``dumpfreq_n`` relative to a reference date
+variables ``dumpfreq_unit`` and ``dumpfreq_n`` relative to a reference date
 specified by ``dumpfreq_base``.  Multiple restart frequencies are supported
-in the code with a similar mechanism to history streams.  The pointer to the filename from
+in the code with a similar mechanism to history streams.  If no restart frequency is set,
+the first stream defaults to the run length (``runlen_unit`` and ``runlen_n``) and the
+others to ``x``.  Restarts are written at
+calendar boundaries relative to ``dumpfreq_base``, so this is a restart at the end of the run
+only when the run starts on such a boundary; ``dump_last`` always writes a restart at the end
+of the run.  The pointer to the filename from
 which the restart data is to be read for a continuation run is set in
 ``pointer_file``. The code assumes that auxiliary binary tracer restart
 files will be identified using the same pointer and file name prefix,

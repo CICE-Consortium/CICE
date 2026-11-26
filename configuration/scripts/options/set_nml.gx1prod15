@@ -1,8 +1,8 @@
 year_init = 1995
 use_leap_years = .true.
-npt_unit = 'y'
-npt = 15
-dumpfreq = 'm'
+runlen_unit = 'y'
+runlen_n = 15
+dumpfreq_unit = 'm'
 dumpfreq_base = 'zero'
 fyear_init = 1995
 ycycle = 16

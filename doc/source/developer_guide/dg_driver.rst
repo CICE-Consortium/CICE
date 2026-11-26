@@ -73,7 +73,7 @@ The initialize calling sequence looks something like::
       call init_diags           ! initialize diagnostic output points
       call init_history_therm   ! initialize thermo history variables
       call init_history_dyn     ! initialize dynamic history variables
-      call calc_timesteps       ! update timestep counter if not using npt_unit="1"
+      call calc_timesteps       ! update timestep counter if not using runlen_unit="1"
       call init_shortwave       ! initialize radiative transfer
       call advance_timestep     ! advance the time step
       call init_forcing_atmo    ! initialize atmospheric forcing (standalone)

@@ -20,7 +20,7 @@
       public :: accum_hist_snow, init_hist_snow_2D, init_hist_snow_3Dc
 
       !---------------------------------------------------------------
-      ! flags: write to output file if true or histfreq value
+      ! flags: write to output file if true or histfreq_unit value
       !---------------------------------------------------------------
 
       character (len=max_nstrm), public :: &
@@ -70,8 +70,9 @@
 
       subroutine init_hist_snow_2D (dt)
 
+      use ice_calendar, only: lower_case
       use ice_broadcast, only: broadcast_scalar
-      use ice_calendar, only: nstreams, histfreq
+      use ice_calendar, only: nstreams, histfreq_unit
       use ice_communicate, only: my_task, master_task
       use ice_history_shared, only: tstr2D, tcstr, define_hist_field
       use ice_fileunits, only: nu_nml, nml_filename, &
@@ -139,6 +140,21 @@
             close(nu_nml)
             call release_fileunit(nu_nml)
 
+            ! history frequency flags are not case sensitive
+            f_smassice = lower_case(f_smassice)
+            f_smassicen = lower_case(f_smassicen)
+            f_smassliq = lower_case(f_smassliq)
+            f_smassliqn = lower_case(f_smassliqn)
+            f_rhos_cmp = lower_case(f_rhos_cmp)
+            f_rhos_cmpn = lower_case(f_rhos_cmpn)
+            f_rhos_cnt = lower_case(f_rhos_cnt)
+            f_rhos_cntn = lower_case(f_rhos_cntn)
+            f_rsnw = lower_case(f_rsnw)
+            f_rsnwn = lower_case(f_rsnwn)
+            f_meltsliq = lower_case(f_meltsliq)
+            f_fsloss = lower_case(f_fsloss)
+            f_sisndmasswind = lower_case(f_sisndmasswind)
+
          endif
 
       else ! .not. tr_snow
@@ -175,7 +191,7 @@
 
       ! 2D variables
       do ns = 1, nstreams
-      if (histfreq(ns) /= 'x') then
+      if (histfreq_unit(ns) /= 'x') then
 
       if (f_smassice(1:1) /= 'x') &
          call define_hist_field(n_smassice,"smassice","kg/m^2",tstr2D, tcstr, &
@@ -226,7 +242,7 @@
              c1, c0,                                                                      &
              ns, f_sisndmasswind, avg_ice_present='none', mask_ice_free_points=.false.)
 
-      endif ! histfreq(ns) /= 'x'
+      endif ! histfreq_unit(ns) /= 'x'
       enddo ! nstreams
       endif ! tr_snow
 
@@ -236,7 +252,7 @@
 
       subroutine init_hist_snow_3Dc
 
-      use ice_calendar, only: nstreams, histfreq
+      use ice_calendar, only: nstreams, histfreq_unit
       use ice_history_shared, only: tstr3Dc, tcstr, define_hist_field
 
       integer (kind=int_kind) :: ns
@@ -252,7 +268,7 @@
 
       ! 3D (category) variables must be looped separately
       do ns = 1, nstreams
-      if (histfreq(ns) /= 'x') then
+      if (histfreq_unit(ns) /= 'x') then
 
       if (f_smassicen(1:1) /= 'x') &
          call define_hist_field(n_smassicen,"smassicen","kg/m^2",tstr3Dc, tcstr, &
@@ -284,7 +300,7 @@
              "none", c1, c0,                                              &
              ns, f_rsnwn)
 
-      endif ! histfreq(ns) /= 'x'
+      endif ! histfreq_unit(ns) /= 'x'
       enddo ! ns
 
       endif ! tr_snow

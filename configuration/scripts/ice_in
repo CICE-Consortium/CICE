@@ -7,8 +7,8 @@
     sec_init       = 0
     istep0         = 0
     dt             = 3600.0
-    npt_unit       = '1'
-    npt            = 24
+    runlen_unit    = '1'
+    runlen_n       = 24
     ndtd           = 1
     runtype        = 'initial'
     ice_ic         = './restart/iced_gx3_v5.nc'
@@ -28,12 +28,12 @@
     restart_dir    = './restart/'
     restart_file   = 'iced'
     pointer_file   = './ice.restart_file'
-    dumpfreq       = 'd','x','x','x','x'
+    dumpfreq_unit  = 'd','x','x','x','x'
     dumpfreq_n     =  1 , 1 , 1 , 1 , 1
     dumpfreq_base  = 'init','init','init','init','init'
     dump_last      = .false.
     bfbflag        = 'off'
-    diagfreq       = 24
+    diagfreq_n     = 24
     diag_type      = 'stdout'
     diag_file      = 'ice_diag.d'
     debug_model    = .false.
@@ -52,7 +52,7 @@
     lonpnt(1)      =  0.
     latpnt(2)      = -65.
     lonpnt(2)      = -45.
-    histfreq       = 'm','x','x','x','x'
+    histfreq_unit  = 'm','x','x','x','x'
     histfreq_n     =  1 , 1 , 1 , 1 , 1
     histfreq_base  = 'zero','zero','zero','zero','zero'
     hist_avg       = .true.,.true.,.true.,.true.,.true.

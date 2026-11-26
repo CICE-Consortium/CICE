@@ -7,7 +7,7 @@
       use ice_kinds_mod, only: int_kind, dbl_kind
       use ice_calendar, only: myear, mmonth, mday, msec
       use ice_calendar, only: year_init, month_init, day_init, sec_init
-      use ice_calendar, only: dt, istep0, diagfreq, npt, npt_unit
+      use ice_calendar, only: dt, istep0, diagfreq_n, npt, runlen_n, runlen_unit
       use ice_calendar, only: months_per_year, daymo, timesecs, seconds_per_day
       use ice_calendar, only: use_leap_years, days_per_year
       use ice_calendar, only: compute_elapsed_days
@@ -89,7 +89,7 @@
       mmonth = -1
       mday = -1
       dt = 86400._dbl_kind
-      diagfreq = 99999999
+      diagfreq_n = 99999999
       call init_calendar()
 
       !-----------------
@@ -523,34 +523,34 @@
       mday = 1
       msec = 0
       do nf1 = 1,6
-         npt = 10
+         runlen_n = 10
          dt = 3600._dbl_kind
 
          if (nf1 == 1) then
-            npt_unit = '1'
+            runlen_unit = '1'
             nptc = 10
          endif
          if (nf1 == 2) then
-            npt_unit = 's'
-            npt = 36000.
+            runlen_unit = 's'
+            runlen_n = 36000
             nptc = 10
          endif
          if (nf1 == 3) then
-            npt_unit = 'h'
+            runlen_unit = 'h'
             nptc = 10
          endif
          if (nf1 == 4) then
-            npt_unit = 'd'
+            runlen_unit = 'd'
             nptc = 240
          endif
          if (nf1 == 5) then
-            npt_unit = 'm'
+            runlen_unit = 'm'
             if (n == 1) nptc = 7272
             if (n == 2) nptc = 7200
             if (n == 3) nptc = 7296
          endif
          if (nf1 == 6) then
-            npt_unit = 'y'
+            runlen_unit = 'y'
             if (n == 1) nptc = 87600
             if (n == 2) nptc = 86400
             if (n == 3) nptc = 87672

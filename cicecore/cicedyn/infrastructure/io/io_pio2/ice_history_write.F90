@@ -24,7 +24,7 @@
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters
-      use ice_calendar, only: write_ic, histfreq
+      use ice_calendar, only: write_ic, histfreq_unit
       use ice_pio
 
       implicit none
@@ -240,7 +240,7 @@
 
       ! do not write time axis on grid output file
       timid = -99
-      if (histfreq(ns)/='g') then
+      if (histfreq_unit(ns)/='g') then
          call ice_pio_check(pio_def_dim(File,'time',PIO_UNLIMITED,timid), &
               subname//' ERROR: defining dim time',file=__FILE__,line=__LINE__)
       endif
@@ -256,7 +256,7 @@
       !-----------------------------------------------------------------
 
       ! do not write time axis on grid output file
-      if (histfreq(ns)/='g') then
+      if (histfreq_unit(ns)/='g') then
 
          write(cdate,'(i8.8)') idate0
          write(cal_units,'(a,a4,a1,a2,a1,a2,a1,i2.2,a1,i2.2,a1,i2.2)') 'days since ', &
@@ -295,7 +295,7 @@
                  subname//' ERROR: defining att calendar: '//cal_att,file=__FILE__,line=__LINE__)
          endif
 
-      endif  ! histfreq(ns)/='g'
+      endif  ! histfreq_unit(ns)/='g'
 
       !-----------------------------------------------------------------
       ! define information for required time-invariant variables
@@ -438,7 +438,7 @@
       dimid2(2) = jmtid
 
       do i = 1, ncoord
-         if (icoord(i) .or. histfreq(ns)=='g') then
+         if (icoord(i) .or. histfreq_unit(ns)=='g') then
             call ice_hist_coord_def(File, var_coord(i), lprecision, dimid2, varid)
             call ice_write_hist_fill(File,varid,var_coord(i)%short_name,history_precision)
             if (var_coord(i)%short_name == 'ULAT') then
@@ -446,7 +446,7 @@
                     trim('Latitude of NE corner of T grid cell')), &
                     subname//' ERROR: defining att comment',file=__FILE__,line=__LINE__)
             endif
-            if (f_bounds .or. histfreq(ns)=='g') then
+            if (f_bounds .or. histfreq_unit(ns)=='g') then
                call ice_pio_check(pio_put_att(File, varid, 'bounds', trim(coord_bounds(i))), &
                     subname//' ERROR: defining att bounds '//trim(coord_bounds(i)),file=__FILE__,line=__LINE__)
             endif
@@ -464,7 +464,7 @@
       dimidex(6)=fmtid
 
       do i = 1, nvar_grdz
-         if (igrdz(i) .or. histfreq(ns)=='g') then
+         if (igrdz(i) .or. histfreq_unit(ns)=='g') then
             call ice_hist_coord_def(File, var_grdz(i), lprecision, dimidex(i:i), varid)
          else
             extvars = trim(extvars)//' '//trim(var_grdz(i)%short_name)
@@ -472,7 +472,7 @@
       enddo
 
       do i = 1, nvar_grd
-         if (igrd(i) .or. histfreq(ns)=='g') then
+         if (igrd(i) .or. histfreq_unit(ns)=='g') then
             call ice_hist_coord_def(File, var_grd(i)%req, lprecision, dimid2, varid)
             call ice_pio_check(pio_put_att(File, varid, 'coordinates', trim(var_grd(i)%coordinates)), &
                  subname//' ERROR: defining att coordinates '//trim(var_grd(i)%coordinates),file=__FILE__,line=__LINE__)
@@ -487,7 +487,7 @@
       dimid_nverts(2) = imtid
       dimid_nverts(3) = jmtid
       do i = 1, nvar_verts
-         if (f_bounds .or. histfreq(ns)=='g') then
+         if (f_bounds .or. histfreq_unit(ns)=='g') then
             call ice_hist_coord_def(File, var_nverts(i), lprecision, dimid_nverts, varid)
          endif
       enddo
@@ -509,7 +509,7 @@
       endif
 
       do n=1,num_avail_hist_fields_2D
-         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+         if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns) .or. write_ic) then
             call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimid3, ns)
          endif
       enddo
@@ -521,7 +521,7 @@
       dimidz(4) = timid
 
       do n = n2D + 1, n3Dccum
-         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+         if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns) .or. write_ic) then
             call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimidz,ns)
          endif
       enddo  ! num_avail_hist_fields_3Dc
@@ -533,7 +533,7 @@
       dimidz(4) = timid
 
       do n = n3Dccum + 1, n3Dzcum
-         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+         if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns) .or. write_ic) then
             call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimidz,ns)
          endif
       enddo  ! num_avail_hist_fields_3Dz
@@ -545,7 +545,7 @@
       dimidz(4) = timid
 
       do n = n3Dzcum + 1, n3Dbcum
-         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+         if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns) .or. write_ic) then
             call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimidz,ns)
          endif
       enddo  ! num_avail_hist_fields_3Db
@@ -557,7 +557,7 @@
       dimidz(4) = timid
 
       do n = n3Dbcum + 1, n3Dacum
-         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+         if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns) .or. write_ic) then
             call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimidz,ns)
          endif
       enddo  ! num_avail_hist_fields_3Da
@@ -569,7 +569,7 @@
       dimidz(4) = timid
 
       do n = n3Dacum + 1, n3Dfcum
-         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+         if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns) .or. write_ic) then
             call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimidz,ns)
          endif
       enddo  ! num_avail_hist_fields_3Df
@@ -582,7 +582,7 @@
       dimidcz(5) = timid
 
       do n = n3Dfcum + 1, n4Dicum
-         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+         if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns) .or. write_ic) then
             call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimidcz,ns)
          endif
       enddo  ! num_avail_hist_fields_4Di
@@ -595,7 +595,7 @@
       dimidcz(5) = timid
 
       do n = n4Dicum + 1, n4Dscum
-         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+         if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns) .or. write_ic) then
             call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimidcz,ns)
          endif
       enddo  ! num_avail_hist_fields_4Ds
@@ -608,7 +608,7 @@
       dimidcz(5) = timid
 
       do n = n4Dscum + 1, n4Dfcum
-         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+         if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns) .or. write_ic) then
             call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimidcz,ns)
          endif
       enddo  ! num_avail_hist_fields_4Df
@@ -650,14 +650,14 @@
       call ice_pio_check(pio_put_att(File,pio_global,'comment3',trim(title)), &
            subname//' ERROR: defining att comment3 '//trim(title),file=__FILE__,line=__LINE__)
 
-      select case (histfreq(ns))
-         case ("y", "Y")
+      select case (histfreq_unit(ns))
+         case ("y")
             write(time_period_freq,'(a,i0)') 'year_',histfreq_n(ns)
-         case ("m", "M")
+         case ("m")
             write(time_period_freq,'(a,i0)') 'month_',histfreq_n(ns)
-         case ("d", "D")
+         case ("d")
             write(time_period_freq,'(a,i0)') 'day_',histfreq_n(ns)
-         case ("h", "H")
+         case ("h")
             write(time_period_freq,'(a,i0)') 'hour_',histfreq_n(ns)
          case ("1")
             write(time_period_freq,'(a,i0)') 'step_',histfreq_n(ns)
@@ -715,7 +715,7 @@
       !-----------------------------------------------------------------
 
       ! do not write time axis on grid output file
-      if (histfreq(ns)/='g') then
+      if (histfreq_unit(ns)/='g') then
          ltime2 = timesecs/secday ! hist_time_axis = 'end' (default)
 
          ! Some coupled models require the time axis "stamp" to be in the middle
@@ -741,7 +741,7 @@
             call ice_pio_check(pio_put_var(File,varid,ival=time_bounds,start=bnd_start(:),count=bnd_length(:)), &
                  subname//' ERROR: setting time_bounds' ,file=__FILE__,line=__LINE__)
          endif
-      endif  ! histfreq(ns)/='g'
+      endif  ! histfreq_unit(ns)/='g'
 
       !-----------------------------------------------------------------
       ! write coordinate variables
@@ -751,7 +751,7 @@
       allocate(workr2(nx_block,ny_block,nblocks))
 
       do i = 1,ncoord
-         if(icoord(i) .or. histfreq(ns)=='g') then
+         if(icoord(i) .or. histfreq_unit(ns)=='g') then
             call ice_pio_check(pio_inq_varid(File, var_coord(i)%short_name, varid), &
                  subname//' ERROR: getting '//var_coord(i)%short_name ,file=__FILE__,line=__LINE__)
             SELECT CASE (var_coord(i)%short_name)
@@ -790,7 +790,7 @@
       ! Extra dimensions (NCAT, NFSD, VGRD*)
 
       do i = 1, nvar_grdz
-         if (igrdz(i) .or. histfreq(ns)=='g') then
+         if (igrdz(i) .or. histfreq_unit(ns)=='g') then
             call ice_pio_check(pio_inq_varid(File, var_grdz(i)%short_name, varid), &
                  subname//' ERROR: getting '//var_grdz(i)%short_name,file=__FILE__,line=__LINE__)
             SELECT CASE (var_grdz(i)%short_name)
@@ -821,7 +821,7 @@
       !-----------------------------------------------------------------
 
       do i = 1, nvar_grd
-         if (igrd(i) .or. histfreq(ns)=='g') then
+         if (igrd(i) .or. histfreq_unit(ns)=='g') then
             SELECT CASE (var_grd(i)%req%short_name)
                CASE ('tmask')
                   workd2 = hm(:,:,1:nblocks)
@@ -886,7 +886,7 @@
       ! Write coordinates of grid box vertices
       !----------------------------------------------------------------
 
-      if (f_bounds .or. histfreq(ns)=='g') then
+      if (f_bounds .or. histfreq_unit(ns)=='g') then
          allocate(workd3v(nverts,nx_block,ny_block,nblocks))
          allocate(workr3v(nverts,nx_block,ny_block,nblocks))
          workd3v (:,:,:,:) = c0
@@ -1023,7 +1023,7 @@
 
       ! 2D
       do n=1,num_avail_hist_fields_2D
-         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+         if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns) .or. write_ic) then
             call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
                  subname//' ERROR: getting varid for '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
             workd2(:,:,:) = a2D(:,:,n,1:nblocks)
@@ -1056,7 +1056,7 @@
       allocate(workr3(nx_block,ny_block,nblocks,ncat_hist))
       do n = n2D + 1, n3Dccum
          nn = n - n2D
-         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+         if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns) .or. write_ic) then
             call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
                  subname//' ERROR: getting varid for '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
             do j = 1, nblocks
@@ -1092,7 +1092,7 @@
       allocate(workr3(nx_block,ny_block,nblocks,nzilyr))
       do n = n3Dccum+1, n3Dzcum
          nn = n - n3Dccum
-         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+         if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns) .or. write_ic) then
             call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
                  subname//' ERROR: getting varid for '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
             do j = 1, nblocks
@@ -1128,7 +1128,7 @@
       allocate(workr3(nx_block,ny_block,nblocks,nzblyr))
       do n = n3Dzcum+1, n3Dbcum
          nn = n - n3Dzcum
-         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+         if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns) .or. write_ic) then
             call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
                  subname//' ERROR: getting varid for '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
             do j = 1, nblocks
@@ -1164,7 +1164,7 @@
       allocate(workr3(nx_block,ny_block,nblocks,nzalyr))
       do n = n3Dbcum+1, n3Dacum
          nn = n - n3Dbcum
-         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+         if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns) .or. write_ic) then
             call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
                  subname//' ERROR: getting varid for '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
             do j = 1, nblocks
@@ -1200,7 +1200,7 @@
       allocate(workr3(nx_block,ny_block,nblocks,nfsd_hist))
       do n = n3Dacum+1, n3Dfcum
          nn = n - n3Dacum
-         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+         if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns) .or. write_ic) then
             call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
                  subname//' ERROR: getting varid for '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
             do j = 1, nblocks
@@ -1236,7 +1236,7 @@
       ! 4D (categories, vertical ice)
       do n = n3Dfcum+1, n4Dicum
          nn = n - n3Dfcum
-         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+         if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns) .or. write_ic) then
             call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
                  subname//' ERROR: getting varid for '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
             do j = 1, nblocks
@@ -1273,7 +1273,7 @@
       ! 4D (categories, vertical snow)
       do n = n4Dicum+1, n4Dscum
          nn = n - n4Dicum
-         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+         if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns) .or. write_ic) then
             call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
                  subname//' ERROR: getting varid for '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
             do j = 1, nblocks
@@ -1311,7 +1311,7 @@
       ! 4D (categories, fsd)
       do n = n4Dscum+1, n4Dfcum
          nn = n - n4Dscum
-         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+         if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns) .or. write_ic) then
             call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
                  subname//' ERROR: getting varid for '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
             do j = 1, nblocks
@@ -1397,7 +1397,7 @@
       use ice_kinds_mod
       use ice_blocks, only: nx_block, ny_block
       use ice_broadcast, only: broadcast_scalar
-      use ice_calendar, only: nstreams, histfreq
+      use ice_calendar, only: nstreams, histfreq_unit
       use ice_communicate, only: my_task, master_task
       use ice_domain, only: nblocks
       use ice_domain_size, only: max_blocks
@@ -1514,7 +1514,7 @@
 
             ! 2D
             do n=1,num_avail_hist_fields_2D
-               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+               if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns)) then
                   readstr = readstrF
                   status = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
                   work2(:,:,:) = c0
@@ -1535,7 +1535,7 @@
             ! 3D (category)
             do n = n2D + 1, n3Dccum
                nn = n - n2D
-               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+               if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns)) then
                   readstr = readstrF
                   status = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
                   work3(:,:,:,:) = c0
@@ -1560,7 +1560,7 @@
             ! 3D (vertical ice)
             do n = n3Dccum+1, n3Dzcum
                nn = n - n3Dccum
-               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+               if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns)) then
                   readstr = readstrF
                   status = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
                   work3(:,:,:,:) = c0
@@ -1585,7 +1585,7 @@
             ! 3D (vertical ice biology)
             do n = n3Dzcum+1, n3Dbcum
                nn = n - n3Dzcum
-               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+               if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns)) then
                   readstr = readstrF
                   status = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
                   work3(:,:,:,:) = c0
@@ -1610,7 +1610,7 @@
             ! 3D (vertical snow biology)
             do n = n3Dbcum+1, n3Dacum
                nn = n - n3Dbcum
-               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+               if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns)) then
                   readstr = readstrF
                   status = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
                   work3(:,:,:,:) = c0
@@ -1635,7 +1635,7 @@
             ! 3D (fsd)
             do n = n3Dacum+1, n3Dfcum
                nn = n - n3Dacum
-               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+               if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns)) then
                   readstr = readstrF
                   status = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
                   work3(:,:,:,:) = c0
@@ -1660,7 +1660,7 @@
             ! 4D (categories, vertical ice)
             do n = n3Dfcum+1, n4Dicum
                nn = n - n3Dfcum
-               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+               if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns)) then
                   readstr = readstrF
                   status = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
                   work4(:,:,:,:,:) = c0
@@ -1687,7 +1687,7 @@
             ! 4D (categories, vertical snow)
             do n = n4Dicum+1, n4Dscum
                nn = n - n4Dicum
-               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+               if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns)) then
                   readstr = readstrF
                   status = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
                   work4(:,:,:,:,:) = c0
@@ -1714,7 +1714,7 @@
             ! 4D (categories, fsd)
             do n = n4Dscum+1, n4Dfcum
                nn = n - n4Dscum
-               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+               if (avail_hist_fields(n)%vhistfreq == histfreq_unit(ns)) then
                   readstr = readstrF
                   status = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
                   work4(:,:,:,:,:) = c0
@@ -1855,7 +1855,7 @@
       use ice_history_shared, only: history_deflate, history_chunksize, history_format
 #endif
       use ice_history_shared, only: ice_hist_field, history_precision, hist_avg
-      use ice_calendar, only: histfreq, histfreq_n, write_ic
+      use ice_calendar, only: histfreq_unit, histfreq_n, write_ic
 
       type(file_desc_t),   intent(inout) :: File
       type(ice_hist_field)  , intent(in) :: hfield
@@ -1940,7 +1940,7 @@
          endif
       endif
 
-      if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
+      if ((histfreq_unit(ns) == '1' .and. histfreq_n(ns) == 1) &
           .or..not. hist_avg(ns)                          &
           .or. write_ic                                   &
           .or.TRIM(hfield%vname(1:4))=='divu' &
