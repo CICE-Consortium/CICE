@@ -47,7 +47,7 @@
       subroutine init_restart_read(ice_ic)
 
       use ice_calendar, only: msec, mmonth, mday, myear, &
-                             istep0, istep1, npt, runlen_n
+                             istep0, istep1
 
       character(len=char_len_long), intent(in), optional :: ice_ic
 
@@ -117,12 +117,6 @@
       call broadcast_scalar(msec,master_task)
 
       istep1 = istep0
-
-      ! if runid is bering then need to correct npt for istep0
-      if (trim(runid) == 'bering') then
-         npt = npt - istep0
-         runlen_n = runlen_n - istep0
-      endif
 #else
       call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined for '//trim(ice_ic), &
           file=__FILE__, line=__LINE__)

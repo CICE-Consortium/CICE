@@ -609,7 +609,7 @@
       lonpnt(2) = -45._dbl_kind   ! longitude of point 2 (deg)
 
 #ifndef CESMCOUPLED
-      runid   = 'unknown'   ! run ID used in CESM and for machine 'bering'
+      runid   = 'unknown'   ! run ID used in CESM
       runtype = 'initial'   ! run type: 'initial', 'continue'
       restart = .false.     ! if true, read ice state from restart file
       use_restart_time = .false.   ! if true, use time info written in file
