@@ -359,7 +359,7 @@
       diag_type = 'stdout'
       diag_file = 'ice_diag.d'
       histfreq_unit(:) = ' ' ! output frequency option for different streams
-                             ! (default '1','h','d','m','y','x',...)
+                             ! (default 'x', stream not used)
       histfreq(:) = ' '      ! deprecated, histfreq_unit
       histfreq_n(:) = 1      ! output frequency
       histfreq_base(:) = 'zero' ! output frequency reference date
@@ -381,9 +381,9 @@
       cpl_bgc = .false.      ! couple bgc thru driver
       incond_dir = history_dir ! write to history dir for default
       incond_file = 'iceh_ic'! file prefix
-      dumpfreq_unit(:) = ' '    ! restart frequency option (default 'y','x',...)
+      dumpfreq_unit(:) = ' '    ! restart frequency option (default runlen_unit,'x',...)
       dumpfreq(:) = ' '         ! deprecated, dumpfreq_unit
-      dumpfreq_n(:) = 1         ! restart frequency
+      dumpfreq_n(:) = 1         ! restart frequency (runlen_n if dumpfreq_unit is not set)
       dumpfreq_base(:) = 'init' ! restart frequency reference date
       dump_last = .false.    ! write restart on last time step
       restart_dir  = './'    ! write to executable dir for default
@@ -1899,7 +1899,9 @@
          if (my_task == master_task) write(nu_diag,*) subname//' WARNING: histfreq is deprecated, use histfreq_unit'
          histfreq_unit = histfreq
       endif
-      where (histfreq_unit == ' ') histfreq_unit = (/'1','h','d','m','y',('x',n=6,max_nstrm)/)
+      do n = 1, max_nstrm
+         if (histfreq_unit(n) == ' ') histfreq_unit(n) = 'x'
+      enddo
       if (any(dumpfreq /= ' ') .and. any(dumpfreq_unit /= ' ')) then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: both dumpfreq and dumpfreq_unit are set'
          abort_list = trim(abort_list)//":71"
@@ -1907,7 +1909,14 @@
          if (my_task == master_task) write(nu_diag,*) subname//' WARNING: dumpfreq is deprecated, use dumpfreq_unit'
          dumpfreq_unit = dumpfreq
       endif
-      where (dumpfreq_unit == ' ') dumpfreq_unit = (/'y',('x',n=2,max_nstrm)/)
+      if (all(dumpfreq_unit == ' ')) then
+         ! no restart frequency set, restart at the end of the run
+         dumpfreq_unit(1) = runlen_unit
+         dumpfreq_n(1) = runlen_n
+      endif
+      do n = 1, max_nstrm
+         if (dumpfreq_unit(n) == ' ') dumpfreq_unit(n) = 'x'
+      enddo
       ! run length in timesteps, for drivers that do not call calc_timesteps
       npt = runlen_n
       runlen_unit = lower_case(runlen_unit)

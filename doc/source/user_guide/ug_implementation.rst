@@ -1402,7 +1402,8 @@ are time averaged over the interval although because one stream has ``histfreq_u
 From an efficiency standpoint, it is best to set unused frequencies in
 ``histfreq_unit`` to ‘x’. Having output at all 5 frequencies takes nearly 5 times
 as long as for a single frequency. If you only want monthly output, the
-most efficient setting is ``histfreq_unit`` = ’m’,’x’,’x’,’x’,’x’. The code counts
+most efficient setting is ``histfreq_unit`` = ’m’,’x’,’x’,’x’,’x’. Streams that are
+not set in the namelist default to ‘x’. The code counts
 the number of desired streams (``nstreams``) based on ``histfreq_unit``.
 
 There is no restart capability built into the history implementation.  If the
@@ -1632,7 +1633,12 @@ defined by the ``restart_file`` namelist input, and the restart dump frequency
 is given by the namelist
 variables ``dumpfreq_unit`` and ``dumpfreq_n`` relative to a reference date
 specified by ``dumpfreq_base``.  Multiple restart frequencies are supported
-in the code with a similar mechanism to history streams.  The pointer to the filename from
+in the code with a similar mechanism to history streams.  If no restart frequency is set,
+the first stream defaults to the run length (``runlen_unit`` and ``runlen_n``) and the
+others to ``x``.  Restarts are written at
+calendar boundaries relative to ``dumpfreq_base``, so this is a restart at the end of the run
+only when the run starts on such a boundary; ``dump_last`` always writes a restart at the end
+of the run.  The pointer to the filename from
 which the restart data is to be read for a continuation run is set in
 ``pointer_file``. The code assumes that auxiliary binary tracer restart
 files will be identified using the same pointer and file name prefix,
